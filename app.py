@@ -2,15 +2,18 @@
 课表自动获取工具 - 安徽建筑大学研究生系统
 Flask 后端：SSO 登录 + 课表 API + 手机网页前端
 """
+import os
 import re
 import json
+import secrets
 import logging
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import requests
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
-app.secret_key = "ahjzu-schedule-tool-2024"
+# 密钥：优先从环境变量 SECRET_KEY 读取；否则每次启动随机生成（重启后需重新登录）
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -24,8 +27,8 @@ GRADUATE_APP = "/gmis5"
 # 课表 API 路径（已确认）
 COURSE_API_PATH = "/student/pygl/py_kbcx_ew"
 
-# 学期代码（需要根据实际情况调整）
-DEFAULT_TERM = "202701"
+# 学期代码（可通过环境变量 KCB_TERM 覆盖，或前端设置页修改后随请求传入）
+DEFAULT_TERM = os.environ.get("KCB_TERM", "202701")
 
 WEEK_MAP = {1: "周一", 2: "周二", 3: "周三", 4: "周四",
             5: "周五", 6: "周六", 7: "周日"}
@@ -196,6 +199,7 @@ def parse_courses(api_data: dict) -> list:
 
             # 解析课程信息
             # 格式: \n课程名班级[周次] 教师[教室]\n
+            # 可能有多门课（换行分隔）
             cell_text = cell.replace("<br/>", "\n").replace("<br>", "\n").strip()
             lines = [l.strip() for l in cell_text.split("\n") if l.strip()]
 
@@ -214,38 +218,43 @@ def parse_courses(api_data: dict) -> list:
 
 def parse_course_line(line: str) -> dict:
     """
-    解析单行课程信息。
-    格式: 课程名班级[周次] 教师[教室]
-    示例: 新时代中国特色社会主义理论与实践4班[1-8周] 周叶君[5102]
+    解析单行课程信息（安建大研究生系统格式）。
+    标准格式: 课程名班级[周次] 教师[教室]
+    示例:     新时代中国特色社会主义理论与实践4班[1-8周] 周叶君[5102]
+    周次支持: 1-8 / 2 / 1-8,10-16（逗号分隔多段）
     """
-    # 用正则匹配
-    pattern = r'^(.+?)\[(\d+(?:-\d+)?周?)\]\s+(.+?)\[(.+?)\]$'
-    match = re.match(pattern, line)
-    if match:
+    line = line.strip()
+    weeks_re = r'(\d+(?:-\d+)?(?:[,，]\s*\d+(?:-\d+)?)*)'
+
+    # 格式1: 课程名[周次] 教师[教室]
+    m = re.match(r'^(.+?)\[' + weeks_re + r'周?\]\s*(.*?)\s*\[([^\[\]]+)\]$', line)
+    if m:
         return {
-            "name": match.group(1).strip(),
-            "weeks": match.group(2).replace("周", ""),
-            "teacher": match.group(3).strip(),
-            "room": match.group(4).strip(),
+            "name": m.group(1).strip(),
+            "weeks": m.group(2).replace("，", ",").replace(" ", ""),
+            "teacher": m.group(3).strip(),
+            "room": m.group(4).strip(),
         }
 
-    # 备用：简单分割
-    parts = line.split("[")
-    if len(parts) >= 2:
-        name_part = parts[0].strip()
-        rest = "[".join(parts[1:])
-        rest_parts = rest.split("]")
-        if len(rest_parts) >= 2:
-            weeks = rest_parts[0].replace("周", "")
-            teacher_room = rest_parts[1].strip()
-            tr_match = re.match(r'^(.+?)\[(.+?)\]$', teacher_room)
-            if tr_match:
-                return {
-                    "name": name_part,
-                    "weeks": weeks,
-                    "teacher": tr_match.group(1).strip(),
-                    "room": tr_match.group(2).strip(),
-                }
+    # 格式2: 课程名[周次] 教师（无教室）
+    m = re.match(r'^(.+?)\[' + weeks_re + r'周?\]\s*(\S.*)$', line)
+    if m:
+        return {
+            "name": m.group(1).strip(),
+            "weeks": m.group(2).replace("，", ",").replace(" ", ""),
+            "teacher": m.group(3).strip(),
+            "room": "",
+        }
+
+    # 格式3: 课程名[周次]
+    m = re.match(r'^(.+?)\[' + weeks_re + r'周?\]$', line)
+    if m:
+        return {
+            "name": m.group(1).strip(),
+            "weeks": m.group(2).replace("，", ",").replace(" ", ""),
+            "teacher": "",
+            "room": "",
+        }
 
     return None
 
@@ -269,6 +278,7 @@ def api_login():
     result = client.login(username, password)
 
     if result["ok"]:
+        # 存储 client 到 session（生产环境应用 Redis）
         session["client"] = {
             "cookies": dict(client.session.cookies),
             "logged_in": True,
@@ -285,17 +295,26 @@ def api_schedule():
     if not client_data or not client_data.get("logged_in"):
         return jsonify({"ok": False, "msg": "请先登录"})
 
+    # 学期代码：请求参数 > 环境变量 > 默认值
+    term_code = request.args.get("term") or DEFAULT_TERM
+
+    # 重建 client
     client = AhjzuClient()
     client.session.cookies.update(client_data.get("cookies", {}))
     client.logged_in = True
     client.session_token = client_data.get("session_token")
 
-    result = client.fetch_schedule()
+    result = client.fetch_schedule(term_code)
 
     if result["ok"]:
         courses = parse_courses(result["data"])
-        return jsonify({"ok": True, "courses": courses,
-                        "week": result["data"].get("week", "")})
+        # 节次结构（jcid/mc/sjbz），供前端动态生成时间轴
+        slots = [
+            {"jcid": r.get("jcid"), "mc": r.get("mc", ""), "sjbz": r.get("sjbz", "")}
+            for r in result["data"].get("rows", [])
+        ]
+        return jsonify({"ok": True, "courses": courses, "slots": slots,
+                        "week": result["data"].get("week", ""), "term": term_code})
 
     return jsonify(result)
 
@@ -307,13 +326,29 @@ def api_schedule_raw():
     if not client_data or not client_data.get("logged_in"):
         return jsonify({"ok": False, "msg": "请先登录"})
 
+    term_code = request.args.get("term") or DEFAULT_TERM
+
     client = AhjzuClient()
     client.session.cookies.update(client_data.get("cookies", {}))
     client.logged_in = True
     client.session_token = client_data.get("session_token")
 
-    return jsonify(client.fetch_schedule())
+    return jsonify(client.fetch_schedule(term_code))
+
+
+@app.route("/api/logout", methods=["POST"])
+def api_logout():
+    """退出登录，清除会话"""
+    session.clear()
+    return jsonify({"ok": True, "msg": "已退出登录"})
+
+
+@app.route("/api/config", methods=["GET"])
+def api_config():
+    """前端配置信息"""
+    return jsonify({"ok": True, "term": DEFAULT_TERM, "version": 2})
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=debug)
