@@ -20,3 +20,10 @@ Thumbs.db
 Screenshot*
 .verify/
 
+# Node / Capacitor / Android（本地不编译，全部在 GitHub Actions 云端完成）
+node_modules/
+.npm-cache/
+.npm-tmp/
+android-app/android/
+*.pfx
+

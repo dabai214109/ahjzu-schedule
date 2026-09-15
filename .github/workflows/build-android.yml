@@ -1,0 +1,101 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android-app/**'
+      - '.github/**'
+  workflow_dispatch:
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Create Android project (Capacitor)
+        working-directory: android-app
+        run: |
+          npm install --no-audit --no-fund
+          npx cap add android
+
+      - name: Patch app (name / icons / version)
+        run: bash .github/scripts/patch-android.sh
+
+      - name: Prepare signing keystore
+        env:
+          KCB_KEYSTORE_BASE64: ${{ secrets.KCB_KEYSTORE_BASE64 }}
+          KCB_KEYSTORE_PASSWORD: ${{ secrets.KCB_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "$KCB_KEYSTORE_BASE64" ] && [ -n "$KCB_KEYSTORE_PASSWORD" ]; then
+            echo "使用正式签名密钥"
+            echo "$KCB_KEYSTORE_BASE64" | base64 -d > /tmp/release.pfx
+            keytool -importkeystore \
+              -srckeystore /tmp/release.pfx -srcstoretype PKCS12 \
+              -srcstorepass "$KCB_KEYSTORE_PASSWORD" \
+              -destkeystore /tmp/release.keystore -deststoretype PKCS12 \
+              -deststorepass "$KCB_KEYSTORE_PASSWORD" -destalias kcbkey -noprompt
+            rm -f /tmp/release.pfx
+          else
+            echo "::warning::未配置签名密钥 Secret，改用调试签名（无法覆盖更新正式版）"
+            keytool -genkeypair -keystore /tmp/release.keystore -storetype PKCS12 \
+              -storepass android -alias kcbkey -keypass android \
+              -dname "CN=KCB Debug,O=dabai,C=CN" -keyalg RSA -keysize 2048 -validity 10950
+          fi
+
+      - name: Build release APK
+        working-directory: android-app/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Sign APK
+        env:
+          KCB_KEYSTORE_PASSWORD: ${{ secrets.KCB_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          PASS="${KCB_KEYSTORE_PASSWORD:-android}"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          UNSIGNED="android-app/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          ls -la "$(dirname "$UNSIGNED")"
+          "$BT/zipalign" -f -p 4 "$UNSIGNED" kcb-aligned.apk
+          "$BT/apksigner" sign \
+            --ks /tmp/release.keystore --ks-key-alias kcbkey \
+            --ks-pass "pass:$PASS" --key-pass "pass:$PASS" \
+            --out "kcb-v1.0.${GITHUB_RUN_NUMBER}.apk" kcb-aligned.apk
+          "$BT/apksigner" verify --print-certs "kcb-v1.0.${GITHUB_RUN_NUMBER}.apk"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kcb-apk
+          path: kcb-v1.0.*.apk
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v1.0.${GITHUB_RUN_NUMBER}"
+          gh release view "$TAG" >/dev/null 2>&1 || \
+          gh release create "$TAG" kcb-v1.0.*.apk \
+            --title "我的课表 Android v1.0.${GITHUB_RUN_NUMBER}" \
+            --notes "安徽建筑大学研究生课表 App。下载 kcb-v1.0.${GITHUB_RUN_NUMBER}.apk 安装；首次安装需允许「未知来源应用」。之后更新直接安装新版覆盖即可。"

@@ -1,0 +1,8 @@
+# 换行符规则：脚本和 CI 配置必须 LF，图片二进制
+* text=auto
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.png binary
+*.jpg binary
+*.pfx binary
