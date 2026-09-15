@@ -114,6 +114,10 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 
 /* ─────────── 课表网格 ─────────── */
 .grid { padding: 2px 8px 44px; }
+.grid.anim-l { animation: wkInL .22s ease; }
+.grid.anim-r { animation: wkInR .22s ease; }
+@keyframes wkInL { from { opacity: .35; transform: translateX(26px); } }
+@keyframes wkInR { from { opacity: .35; transform: translateX(-26px); } }
 table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-layout: fixed; }
 .kcb th.axis { width: 38px; }
 .kcb th.day-h { font-size: 11px; color: var(--dim); font-weight: 500; padding: 4px 0 5px; text-align: center; }
@@ -140,6 +144,16 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .cell.dim { opacity: .38; }
+/* 同格多门课：格内堆叠小卡片 */
+td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
+.cell.multi .mcard {
+  border-radius: 7px; padding: 3px 4px; margin: 1px 0;
+  cursor: pointer; text-align: left; overflow: hidden;
+}
+.cell.multi .mcard:active { filter: brightness(.94); }
+.cell.multi .mcard.dim { opacity: .38; }
+.cell.multi .mcard .nm { font-size: 9px; -webkit-line-clamp: 2; }
+.cell.multi .mcard .rm { font-size: 8px; }
 .kcb tr.break td {
   text-align: center; font-size: 9px; color: #B8BECA;
   padding: 1px 0 0; letter-spacing: 4px;
@@ -619,7 +633,7 @@ function parseCourseLine(line) {
 function parseCourses(apiData) {
   var out = [];
   (apiData.rows || []).forEach(function (row) {
-    var period = row.sjbz || '', slotName = row.mc || '', jcid = row.jcid || 0;
+    var period = row.sjbz || '', slotName = String(row.mc || '').trim(), jcid = row.jcid || 0;
     for (var d = 1; d <= 7; d++) {
       var cell = row['z' + d];
       if (!cell || !String(cell).trim()) continue;
@@ -641,7 +655,7 @@ function parseCourses(apiData) {
 
 function extractSlots(apiData) {
   return (apiData.rows || []).map(function (r) {
-    return { jcid: r.jcid, mc: r.mc || '', sjbz: r.sjbz || '' };
+    return { jcid: r.jcid, mc: String(r.mc || '').trim(), sjbz: r.sjbz || '' };
   });
 }
 
@@ -881,23 +895,40 @@ function renderGrid() {
   active.forEach(function (c) {
     var si = slotIdxMap[c.slot];
     if (si === undefined) return;
-    if (!byDay[c.day]) byDay[c.day] = new Array(slots.length).fill(null);
-    byDay[c.day][si] = c;
+    if (!byDay[c.day]) byDay[c.day] = slots.map(function () { return []; });
+    var cell = byDay[c.day][si];
+    if (!cell.some(function (x) { return sameCourse(x, c); })) cell.push(c);
+  });
+  /* 格内排序：本周课程排前面 */
+  Object.keys(byDay).forEach(function (dk) {
+    byDay[dk].forEach(function (cell) {
+      cell.sort(function (a, b) {
+        var wa = inWeek(a, viewWeek) ? 0 : 1, wb = inWeek(b, viewWeek) ? 0 : 1;
+        if (wa !== wb) return wa - wb;
+        return (+(String(a.weeks).match(/\d+/) || [0])[0]) - (+(String(b.weeks).match(/\d+/) || [0])[0]);
+      });
+    });
   });
 
+  /* 合并连续节次：两格课程列表完全一致才合并（连堂） */
+  function cellEq(a, b) {
+    if (!a || !b || !a.length || a.length !== b.length) return false;
+    for (var k = 0; k < a.length; k++) if (!sameCourse(a[k], b[k])) return false;
+    return true;
+  }
   var starts = {}, covered = {};
   for (var d = 1; d <= 7; d++) {
     starts[d] = {}; covered[d] = {};
     var arr = byDay[d];
     if (!arr) continue;
-    for (var i = 0; i < slots.length; i++) {
-      var c = arr[i];
-      if (!c) continue;
+    var i = 0;
+    while (i < slots.length) {
+      if (!arr[i] || !arr[i].length) { i++; continue; }
       var j = i + 1;
-      while (j < slots.length && arr[j] && sameCourse(arr[j], c) && slots[j].sjbz === slots[i].sjbz) j++;
-      starts[d][i] = { c: c, span: j - i };
-      for (var k = i + 1; k < j; k++) covered[d][k] = true;
-      i = j - 1;
+      while (j < slots.length && cellEq(arr[i], arr[j]) && slots[j].sjbz === slots[i].sjbz) j++;
+      starts[d][i] = { list: arr[i], span: j - i };
+      for (var k2 = i + 1; k2 < j; k2++) covered[d][k2] = true;
+      i = j;
     }
   }
 
@@ -922,11 +953,24 @@ function renderGrid() {
       var onCol = isCurWeek && (d2 - 1) === todayIdx;
       var st = starts[d2] && starts[d2][i];
       if (st) {
-        var cc = st.c, dim = !inWeek(cc, viewWeek);
-        var idx = cardRefs.push(Object.assign({}, cc, { span: st.span, slotIdx: i })) - 1;
-        h += '<td class="cell ' + colorClass(cc.name) + (dim ? ' dim' : '') + '" rowspan="' + st.span +
-             '" onclick="showDetail(' + idx + ')"><div class="nm">' + esc(cc.name) + '</div>' +
-             (cc.room ? '<div class="rm">' + esc(cc.room) + '</div>' : '') + '</td>';
+        if (st.list.length === 1) {
+          var cc = st.list[0], dim = !inWeek(cc, viewWeek);
+          var idx = cardRefs.push(Object.assign({}, cc, { span: st.span, slotIdx: i })) - 1;
+          h += '<td class="cell ' + colorClass(cc.name) + (dim ? ' dim' : '') + '" rowspan="' + st.span +
+               '" onclick="showDetail(' + idx + ')"><div class="nm">' + esc(cc.name) + '</div>' +
+               (cc.room ? '<div class="rm">' + esc(cc.room) + '</div>' : '') + '</td>';
+        } else {
+          /* 同格多门课（不同周次段叠放）：格内堆叠小卡片 */
+          var inner = '';
+          st.list.forEach(function (mc2) {
+            var dim2 = !inWeek(mc2, viewWeek);
+            var idx2 = cardRefs.push(Object.assign({}, mc2, { span: st.span, slotIdx: i })) - 1;
+            inner += '<div class="mcard ' + colorClass(mc2.name) + (dim2 ? ' dim' : '') +
+                     '" onclick="showDetail(' + idx2 + ')"><div class="nm">' + esc(mc2.name) + '</div>' +
+                     (mc2.room ? '<div class="rm">' + esc(mc2.room) + '</div>' : '') + '</div>';
+          });
+          h += '<td class="cell multi" rowspan="' + st.span + '">' + inner + '</td>';
+        }
       } else if (!covered[d2][i]) {
         h += '<td class="empty' + (onCol ? ' today-col' : '') + '"></td>';
       }
@@ -991,6 +1035,18 @@ function pickWeek(w) {
 function shiftWeek(delta) {
   var w = Math.min(settings.totalWeeks, Math.max(1, viewWeek + delta));
   if (w !== viewWeek) { viewWeek = w; renderAll(); window.scrollTo(0, 0); }
+}
+/* 滑动切换（带滑入动画） */
+function swipeWeek(delta) {
+  var w = viewWeek + delta;
+  if (w < 1 || w > settings.totalWeeks) return;
+  var wrap = $('grid');
+  wrap.classList.remove('anim-l', 'anim-r');
+  void wrap.offsetWidth;  /* 强制 reflow 以重新触发动画 */
+  wrap.classList.add(delta > 0 ? 'anim-l' : 'anim-r');
+  viewWeek = w;
+  renderAll();
+  window.scrollTo(0, 0);
 }
 function goToday() {
   viewWeek = currentWeek();
@@ -1096,6 +1152,30 @@ function bindStatic() {
     $('ptr').classList.remove('show');
     if (pulling) doRefresh(true);
     startY = null; pulling = false;
+  });
+
+  /* 左右滑动切换周次（横向位移明显大于纵向才算，避免误触竖向滚动） */
+  var swX = 0, swY = 0, swT = 0, swOn = false;
+  $('schedulePage').addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) { swOn = false; return; }
+    swX = e.touches[0].clientX; swY = e.touches[0].clientY;
+    swT = Date.now(); swOn = true;
+  }, { passive: true });
+  $('schedulePage').addEventListener('touchend', function (e) {
+    if (!swOn) return;
+    swOn = false;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - swX, dy = t.clientY - swY;
+    if (Date.now() - swT > 700) return;                        /* 太慢不算 */
+    if (Math.abs(dx) < 56 || Math.abs(dx) < 1.6 * Math.abs(dy)) return;
+    swipeWeek(dx < 0 ? 1 : -1);                                /* 左滑下周，右滑上周 */
+  }, { passive: true });
+
+  /* 电脑上方向键切换周次 */
+  document.addEventListener('keydown', function (e) {
+    if ($('settingsPage').classList.contains('open')) return;
+    if (e.key === 'ArrowLeft') swipeWeek(-1);
+    else if (e.key === 'ArrowRight') swipeWeek(1);
   });
 }
 

@@ -188,7 +188,7 @@ def parse_courses(api_data: dict) -> list:
 
     for row in rows:
         period = row.get("sjbz", "")  # 上午/下午/晚上
-        slot_name = row.get("mc", "")
+        slot_name = row.get("mc", "").strip()  # 如"上午1"（可能带尾随空格）
         jcid = row.get("jcid", 0)
 
         # z1~z7 对应周一~周日
@@ -310,7 +310,7 @@ def api_schedule():
         courses = parse_courses(result["data"])
         # 节次结构（jcid/mc/sjbz），供前端动态生成时间轴
         slots = [
-            {"jcid": r.get("jcid"), "mc": r.get("mc", ""), "sjbz": r.get("sjbz", "")}
+            {"jcid": r.get("jcid"), "mc": r.get("mc", "").strip(), "sjbz": r.get("sjbz", "")}
             for r in result["data"].get("rows", [])
         ]
         return jsonify({"ok": True, "courses": courses, "slots": slots,
