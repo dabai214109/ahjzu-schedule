@@ -28,7 +28,8 @@ cat > "$RES/mipmap-anydpi-v26/ic_launcher.xml" <<'EOF'
 EOF
 cp "$RES/mipmap-anydpi-v26/ic_launcher.xml" "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
 
-cat > "$RES/values/colors_kcb.xml" <<'EOF'
+# 覆盖 Capacitor 模板自带的背景色定义（不能新建文件，否则资源重名）
+cat > "$RES/values/ic_launcher_background.xml" <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#3B82F6</color>
