@@ -50,16 +50,12 @@ jobs:
           set -euo pipefail
           if [ -n "$KCB_KEYSTORE_BASE64" ] && [ -n "$KCB_KEYSTORE_PASSWORD" ]; then
             echo "使用正式签名密钥"
-            echo "$KCB_KEYSTORE_BASE64" | base64 -d > /tmp/release.pfx
-            keytool -importkeystore \
-              -srckeystore /tmp/release.pfx -srcstoretype PKCS12 \
-              -srcstorepass "$KCB_KEYSTORE_PASSWORD" \
-              -destkeystore /tmp/release.keystore -deststoretype PKCS12 \
-              -deststorepass "$KCB_KEYSTORE_PASSWORD" -destalias kcbkey -noprompt
-            rm -f /tmp/release.pfx
+            echo "$KCB_KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore.p12
+            keytool -list -keystore /tmp/release.keystore.p12 -storetype PKCS12 \
+              -storepass "$KCB_KEYSTORE_PASSWORD" -noprompt || true
           else
             echo "::warning::未配置签名密钥 Secret，改用调试签名（无法覆盖更新正式版）"
-            keytool -genkeypair -keystore /tmp/release.keystore -storetype PKCS12 \
+            keytool -genkeypair -keystore /tmp/release.keystore.p12 -storetype PKCS12 \
               -storepass android -alias kcbkey -keypass android \
               -dname "CN=KCB Debug,O=dabai,C=CN" -keyalg RSA -keysize 2048 -validity 10950
           fi
@@ -79,8 +75,8 @@ jobs:
           ls -la "$(dirname "$UNSIGNED")"
           "$BT/zipalign" -f -p 4 "$UNSIGNED" kcb-aligned.apk
           "$BT/apksigner" sign \
-            --ks /tmp/release.keystore --ks-key-alias kcbkey \
-            --ks-pass "pass:$PASS" --key-pass "pass:$PASS" \
+            --ks /tmp/release.keystore.p12 --ks-type PKCS12 \
+            --ks-pass "pass:$PASS" \
             --out "kcb-v1.0.${GITHUB_RUN_NUMBER}.apk" kcb-aligned.apk
           "$BT/apksigner" verify --print-certs "kcb-v1.0.${GITHUB_RUN_NUMBER}.apk"
 
