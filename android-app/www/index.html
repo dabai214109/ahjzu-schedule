@@ -134,42 +134,49 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
 .slot span { display: block; font-size: 8px; line-height: 1.35; }
 .kcb td.empty { height: 66px; }
 .kcb td.empty.today-col { background: rgba(59, 130, 246, .055); border-radius: 9px; }
-/* 卡片：课程名可以截断，但「教师·地点」行绝对定位钉在格子底部，不参与排布，永不被挤出 */
+/* 卡片：课程名 + 教师·地点 紧贴顶部依次排列（地点不再被甩到格子底部）；
+   名称按跨行数限制高度，地点行不可压缩，所以长卡片也不会把地点挤掉 */
 .kcb td.cell {
-  height: 66px; border-radius: 9px; padding: 4px 3px 24px;
+  height: 66px; border-radius: 9px; padding: 4px 3px 3px;
   vertical-align: top; overflow: hidden; cursor: pointer; text-align: left;
-  position: relative; box-sizing: border-box;
+  box-sizing: border-box;
 }
 .cell:active { filter: brightness(.94); }
-.cell .cin { display: block; }
+.cell .cin {
+  display: flex; flex-direction: column; justify-content: flex-start;
+  height: 100%; min-height: 0;
+}
 .cell .nm {
   font-size: 10px; font-weight: 600; line-height: 1.2;
   max-height: 36px; overflow: hidden; word-break: break-all;
+  flex: 0 1 auto; min-height: 0;
 }
 .cell .rm {
-  position: absolute; left: 3px; right: 3px; bottom: 2px;
-  font-size: 9px; line-height: 1.15; opacity: .92;
+  font-size: 9px; line-height: 1.15; opacity: .92; margin-top: 2px;
   max-height: 22px; overflow: hidden; word-break: break-all;
+  flex: 0 0 auto;
 }
 .cell.dim { opacity: .38; }
 /* 同格多门课：格内堆叠小卡片 */
 td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
 .cell.multi .mcard {
-  position: relative; border-radius: 7px; padding: 3px 4px 20px; margin: 1px 0;
-  cursor: pointer; text-align: left; overflow: hidden;
-  min-height: 42px; box-sizing: border-box;
+  border-radius: 7px; padding: 3px 4px; margin: 1px 0;
+  cursor: pointer; text-align: left; overflow: hidden; box-sizing: border-box;
 }
 .cell.multi .mcard:active { filter: brightness(.94); }
 .cell.multi .mcard.dim { opacity: .38; }
-.cell.multi .mcard .cin { display: block; }
+.cell.multi .mcard .cin {
+  display: flex; flex-direction: column; justify-content: flex-start;
+  height: 100%; min-height: 0;
+}
 .cell.multi .mcard .nm {
-  font-size: 9.5px; line-height: 1.2; max-height: 24px;
-  overflow: hidden; word-break: break-all;
+  font-size: 9.5px; line-height: 1.2; overflow: hidden; word-break: break-all;
+  flex: 0 1 auto; min-height: 0;
 }
 .cell.multi .mcard .rm {
-  position: absolute; left: 4px; right: 4px; bottom: 2px;
-  font-size: 8.5px; line-height: 1.1; max-height: 18px;
-  overflow: hidden; word-break: break-all;
+  font-size: 8.5px; line-height: 1.1; margin-top: 1px; opacity: .92;
+  max-height: 18px; overflow: hidden; word-break: break-all;
+  flex: 0 0 auto;
 }
 .kcb tr.break td {
   text-align: center; font-size: 9px; color: #B8BECA;
@@ -799,6 +806,15 @@ function cardMeta(c) {
   return joinMeta(c.teacher, c.room);
 }
 
+/* 课程名可占用的最大高度：按卡片跨的节数（和同格课程数）算，
+   保证名称下方一定留得下「教师·地点」那一行 */
+function nameMaxFor(span, coursesInCell) {
+  var per = coursesInCell > 1
+    ? Math.floor((span * 62 - 6) / coursesInCell)
+    : (span * 62 - 6);
+  return Math.max(20, per - 26);
+}
+
 function slotList() {
   if (data && data.slots && data.slots.length) {
     var known = {};
@@ -930,17 +946,20 @@ function renderGrid() {
           var idx = cardRefs.push(Object.assign({}, cc, { span: st.span, slotIdx: i })) - 1;
           var meta = cardMeta(cc);
           h += '<td class="cell ' + colorClass(cc.name) + (dim ? ' dim' : '') + '" rowspan="' + st.span +
-               '" onclick="showDetail(' + idx + ')"><div class="cin"><div class="nm">' + esc(cc.name) + '</div>' +
+               '" onclick="showDetail(' + idx + ')"><div class="cin">' +
+               '<div class="nm" style="max-height:' + nameMaxFor(st.span, 1) + 'px">' + esc(cc.name) + '</div>' +
                (meta ? '<div class="rm">' + esc(meta) + '</div>' : '') + '</div></td>';
         } else {
           /* 同格多门课（不同周次段叠放）：格内堆叠小卡片 */
           var inner = '';
+          var nmMax = nameMaxFor(st.span, st.list.length);
           st.list.forEach(function (mc2) {
             var dim2 = !inWeek(mc2, viewWeek);
             var idx2 = cardRefs.push(Object.assign({}, mc2, { span: st.span, slotIdx: i })) - 1;
             var meta2 = cardMeta(mc2);
             inner += '<div class="mcard ' + colorClass(mc2.name) + (dim2 ? ' dim' : '') +
-                     '" onclick="showDetail(' + idx2 + ')"><div class="cin"><div class="nm">' + esc(mc2.name) + '</div>' +
+                     '" onclick="showDetail(' + idx2 + ')"><div class="cin">' +
+                     '<div class="nm" style="max-height:' + nmMax + 'px">' + esc(mc2.name) + '</div>' +
                      (meta2 ? '<div class="rm">' + esc(meta2) + '</div>' : '') + '</div></div>';
           });
           h += '<td class="cell multi" rowspan="' + st.span + '">' + inner + '</td>';
