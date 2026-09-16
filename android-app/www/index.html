@@ -31,21 +31,34 @@ body {
 .hidden { display: none !important; }
 button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
 
-/* ─────────── 底部 Tab 栏 ─────────── */
+/* ─────────── 底部悬浮胶囊导航（参考日历 App 的悬浮按钮栏）───────────
+   不是贴底通栏，而是一颗居中悬浮的胶囊：内容从它下面滚过，靠模糊+阴影分层。
+   选中项整块填成主题色胶囊（白字），未选中只有灰图标+灰字 → 一眼看出在哪一页 */
 .tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
-  display: flex;
-  background: rgba(255, 255, 255, .96);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--line);
-  padding: 5px 0 calc(5px + env(safe-area-inset-bottom, 0px));
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 200;
+  display: flex; align-items: center; gap: 2px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .9);
+  backdrop-filter: blur(18px) saturate(1.8); -webkit-backdrop-filter: blur(18px) saturate(1.8);
+  border: 1px solid rgba(31, 35, 41, .05);
+  box-shadow: 0 8px 24px rgba(31, 35, 41, .16), 0 1px 2px rgba(31, 35, 41, .06);
 }
 .tab {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  font-size: 11px; color: var(--dim); padding: 4px 0 2px;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 9px 15px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; line-height: 1; color: var(--dim);
+  transition: background .2s ease, color .2s ease, box-shadow .2s ease;
 }
-.tab .tab-ico { font-size: 21px; line-height: 1; filter: grayscale(1) opacity(.5); }
-.tab.active { color: var(--accent); font-weight: 700; }
+.tab .tab-ico { font-size: 18px; line-height: 1; filter: grayscale(1) opacity(.55); transition: filter .2s ease; }
+.tab:not(.active):active { background: rgba(31, 35, 41, .06); }
+.tab.active {
+  color: #fff; font-weight: 700;
+  background: var(--accent);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, .38);
+}
 .tab.active .tab-ico { filter: none; }
 
 /* ─────────── 数据同步 / 导入 ─────────── */
@@ -110,7 +123,7 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 }
 .wk-main { flex: 1; display: flex; align-items: baseline; gap: 8px; padding: 2px; text-align: left; }
 .wk-num { font-size: 16px; font-weight: 700; }
-.wk-range { font-size: 12px; color: var(--dim); }
+.wk-range { font-size: 12px; color: #5F6774; }
 .wk-today {
   padding: 6px 12px; border-radius: 99px;
   background: var(--accent-weak); color: var(--accent);
@@ -119,40 +132,72 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 .wk-today.on { background: var(--accent); color: #fff; }
 
 /* ─────────── 课表网格 ─────────── */
-.grid { padding: 2px 8px calc(66px + env(safe-area-inset-bottom, 0px)); }
+.grid { padding: 2px 8px calc(74px + env(safe-area-inset-bottom, 0px)); }
 .grid.anim-l { animation: wkInL .22s ease; }
 .grid.anim-r { animation: wkInR .22s ease; }
 @keyframes wkInL { from { opacity: .35; transform: translateX(26px); } }
 @keyframes wkInR { from { opacity: .35; transform: translateX(-26px); } }
-table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-layout: fixed; }
-/* 行分隔细线：画在整行底部（列间空隙也连着，所以是一条通线，不会断成虚线）。
+table.kcb {
+  width: 100%; border-collapse: separate; border-spacing: 0 3px; table-layout: fixed;
+  /* 周一到周日的竖线（参考小爱课程表）：画在【整张表】的背景上。
+     关键点：行与行之间那 3px 空隙属于表格的盒子、不属于任何一行/行组，
+     所以画在 tr 或 thead/tbody 上时，空隙里没有线 → 竖线会在每一行交界处断开、
+     卡片上下也看不到竖线。画在 table 上就把空隙一起覆盖了，竖线才是连续的一条。
+     一条 1px 竖线按列宽平铺；前 38px 是时刻表，用底色盖住，免得平铺出杂线 */
+  background-image:
+    linear-gradient(var(--bg), var(--bg)),
+    linear-gradient(to right, var(--grid-line) 0 1px, transparent 1px);
+  background-size: 38px 100%, calc((100% - 38px) / var(--kcb-days, 5)) 100%;
+  background-position: 0 0, 38px 0;
+  background-repeat: no-repeat, repeat-x;
+}
+/* 行分隔细线：画在整行底部（列之间已无缝，所以是一条通线，不会断成虚线）。
    卡片是不透明的、盖在行背景之上，所以卡片处的线自然被卡片挡住：
    空课位看得见线，有课的位置线从卡片背后穿过 → 一眼能分辨卡片 */
 .kcb thead tr, .kcb tbody tr {
   background-image: linear-gradient(to bottom, transparent calc(100% - 1px), var(--grid-line) 0);
   background-repeat: no-repeat;
 }
+/* 竖线在“行内”那一段用格子左侧 1px 边框再画一遍 —— 边框画在背景之上，
+   不透明卡片压不住它，所以卡片左右两侧的竖线一直都在 */
+.kcb thead th + th, .kcb tbody td + td { border-left: 1px solid var(--grid-line); }
+.kcb thead th:last-child, .kcb tbody td:last-child { border-right: 1px solid var(--grid-line); }
 .kcb th.axis { width: 38px; }
-.kcb th.day-h { font-size: 11px; color: var(--dim); font-weight: 500; padding: 4px 0 5px; text-align: center; }
+.kcb th.day-h { font-size: 11px; color: #4F5765; font-weight: 500; padding: 4px 0 5px; text-align: center; }
 .day-h .dw { display: block; font-weight: 600; }
-.day-h .dd { display: block; font-size: 9px; margin-top: 1px; }
+.day-h .dd { display: block; font-size: 9px; margin-top: 1px; color: #6B7381; }
 .day-h.on { color: var(--accent); font-weight: 700; }
-.kcb td.slot { text-align: center; vertical-align: top; padding-top: 3px; color: var(--dim); }
-.slot b { display: block; font-size: 10px; color: #5A6272; font-weight: 600; }
+.kcb td.slot { text-align: center; vertical-align: top; padding-top: 3px; color: #5F6774; }
+.slot b { display: block; font-size: 10px; color: #454D5A; font-weight: 600; }
 .slot span { display: block; font-size: 8px; line-height: 1.35; }
 .kcb td.empty { height: 66px; }
 /* 兜底：空格子自带底线，与上面那条通线同位置重叠（不会变成两倍粗）；
    万一某些 WebView 不画 tr 背景，线也不会整个消失 */
 .kcb td.slot, .kcb td.empty, .kcb tr.break td { border-bottom: 1px solid var(--grid-line); }
 /* 卡片：高度由它覆盖的节数决定（66px/节），课程名过长会截断（见下面 .cell .nm），
-   卡片不会被长课程名撑高；字号按卡片高低自动放大，卡片越高字越大 */
+   卡片不会被长课程名撑高；字号按卡片高低自动放大，卡片越高字越大。
+   卡片底部特意不铺满格子（padding-bottom 4px + background-clip:content-box）：
+   这一行自己的横线画在格子底边上，卡片让开它 → 卡片下方也能看到横线，
+   且上下间距都是 3px，和卡片上方那条线对称（文字内边距搬到 .cin，排版不受影响） */
 .kcb td.cell {
-  height: 66px; border-radius: 9px; padding: 4px 3px 3px;
+  height: 66px; border-radius: 11px; padding: 0 0 4px;
   vertical-align: top; cursor: pointer; text-align: left;
   box-sizing: border-box;
+  background-clip: content-box;
+  position: relative;
+}
+/* 卡片格自己把「这一行的横线」画出来。
+   为什么不能只靠 .kcb tbody tr 的背景渐变：实测在预览浏览器里 tr 的背景渐变不画，
+   所以卡片列里那条线一直是缺的（其它列的线其实来自空格子/时刻格的 border-bottom 兜底）。
+   ::after 是卡片的子元素 → 画在卡片背景【之上】，既不依赖 tr 背景、
+   也不受 background-clip 和圆角影响，就是笔直的一条 1px 线。
+   位置在格子底边，卡片底部又让出了 4px，所以线和卡片之间正好 3px，和上方一条对称 */
+.kcb td.cell::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: var(--grid-line); pointer-events: none;
 }
 .cell:active { filter: brightness(.94); }
-.cell .cin { display: flex; flex-direction: column; justify-content: flex-start; }
+.cell .cin { padding: 4px 3px 3px; display: flex; flex-direction: column; justify-content: flex-start; }
 /* 课程名：在算好的可用高度内截断，超出显示省略号（行数/高度由内联 style 按节数给） */
 .cell .nm {
   font-size: 10px; font-weight: 600; line-height: 1.25;
@@ -168,8 +213,10 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
   flex: 0 0 auto; max-height: none; overflow: visible;
 }
 .cell.dim { opacity: .38; }
-/* 同格多门课：格内堆叠小卡片 */
-td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
+/* 同格多门课：格内堆叠小卡片。注意用 background-color 而不是 background 简写，
+   否则简写会把 .kcb td.cell 上的 background-clip: content-box 重置掉，
+   底部那 4px 留白就没了、横线又会被盖住 */
+td.cell.multi { background-color: rgba(31, 35, 41, .035); background-clip: content-box; padding: 2px 1px 4px; }
 .cell.multi .mcard {
   border-radius: 7px; padding: 3px 4px; margin: 1px 0;
   cursor: pointer; text-align: left; box-sizing: border-box;
@@ -187,9 +234,15 @@ td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
   word-break: break-all; white-space: normal;
   max-height: none; overflow: visible;
 }
+/* 午休/晚休横条：一条灰带把上午/下午/晚上切成三段，分割更明显。
+   ① 灰带是不透明的 → 正好把背后的竖线盖掉，灰带里不出现细线（跟小爱课程表一致）；
+   ② 用向上的阴影把灰带上方那 3px 空隙也补成灰色 → 灰带上边紧贴上一条横线，
+      不会出现“灰条和横线之间空一条缝”的错位感 */
 .kcb tr.break td {
-  text-align: center; font-size: 9px; color: #B8BECA;
-  padding: 1px 0 0; letter-spacing: 4px;
+  text-align: center; font-size: 10px; color: #7C848F;
+  padding: 4px 0; letter-spacing: 4px;
+  background-color: #E7EAF1;
+  box-shadow: 0 -3px 0 #E7EAF1;
 }
 /* 课程配色（按课程名分配） */
 .cc0 { background: #FFE9D6; color: #C05621; }
@@ -251,7 +304,7 @@ td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
 .week-grid button.cur.now { box-shadow: none; }
 
 /* ─────────── 设置页（Tab 内容页） ─────────── */
-.settings-body { padding: 12px 14px calc(70px + env(safe-area-inset-bottom, 0px)); }
+.settings-body { padding: 12px 14px calc(74px + env(safe-area-inset-bottom, 0px)); }
 .group { background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
 .group-title { font-size: 12px; color: var(--dim); padding: 12px 16px 2px; }
 .srow { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
@@ -909,7 +962,9 @@ function cardMeta(c) {
    卡片高度就是它覆盖的节数，不因为课程名长而把整行撑高；
    课程名按剩余空间截断（带省略号），但最后那行「教师[地点]」必须完整显示。
    算法：先按列宽估算地址行要占几行并把它整块扣掉，剩下的高度才给课程名。 */
-var CARD_ROW_H = 66, CARD_GAP = 3, CARD_PAD = 7, NAME_LH = 1.25, META_LH = 1.2;
+/* CARD_PAD = 卡片里给文字留掉的上下内边距合计：4px（.cin 上）+ 3px（.cin 下）
+   + 4px（卡片让给底部横线的留白） = 11px */
+var CARD_ROW_H = 66, CARD_GAP = 3, CARD_PAD = 11, NAME_LH = 1.25, META_LH = 1.2;
 
 /* 电脑预览锁宽：地址栏加 ?w=390 就把整页锁成手机宽度（居中显示），
    不用开发者工具也能看到手机上真实的列宽和截断效果 */
@@ -942,7 +997,6 @@ function applyPreviewWidth() {
          看起来就是最下面几节没底色、细线也没了 */
       'html.pw body{width:var(--pw);margin:0 auto;height:auto;min-height:100%;' +
         'box-shadow:0 0 0 1px #DCE1E9,0 12px 32px rgba(31,35,41,.10)}' +
-      'html.pw .tabbar{left:50%;right:auto;width:var(--pw);transform:translateX(-50%)}' +
       'html.pw .sheet-card{max-width:var(--pw)}';
     document.head.appendChild(st);
   } catch (e) {}
@@ -950,7 +1004,8 @@ function applyPreviewWidth() {
 
 function colChars(fontPx, days) {
   var vw = viewWidth();
-  var colW = (vw - 38 - 16 - (Math.max(days, 1) - 1) * CARD_GAP) / Math.max(days, 1);
+  /* 列之间已经没有空隙了（border-spacing 横向为 0），所以不再扣 CARD_GAP */
+  var colW = (vw - 38 - 16) / Math.max(days, 1);
   return Math.max(2, Math.floor(colW / fontPx));
 }
 
@@ -1143,6 +1198,10 @@ function renderGrid() {
   var any = false;
   for (var d3 = 1; d3 <= 7; d3++) { if (starts[d3] && Object.keys(starts[d3]).length) { any = true; break; } }
   if (!any) h += '<div class="week-empty">这一周没有课程 🎉</div>';
+  /* 竖线/灰带的位置都用这个列数算（5 天/7 天不一样），CSS 里按 calc((100% - 38px) / var(--kcb-days)) 对齐 */
+  if (document.documentElement && document.documentElement.style) {
+    document.documentElement.style.setProperty('--kcb-days', days);
+  }
   wrap.innerHTML = h;
 }
 
