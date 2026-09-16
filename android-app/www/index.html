@@ -134,49 +134,39 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
 .slot span { display: block; font-size: 8px; line-height: 1.35; }
 .kcb td.empty { height: 66px; }
 .kcb td.empty.today-col { background: rgba(59, 130, 246, .055); border-radius: 9px; }
-/* 卡片：课程名 + 教师·地点 紧贴顶部依次排列（地点不再被甩到格子底部）；
-   名称按跨行数限制高度，地点行不可压缩，所以长卡片也不会把地点挤掉 */
+/* 卡片：文字不做任何截断，内容多就让卡片自己长高（最后一行不会被切一半）；
+   字号按卡片高低自动放大，卡片越高字越大 */
 .kcb td.cell {
   height: 66px; border-radius: 9px; padding: 4px 3px 3px;
-  vertical-align: top; overflow: hidden; cursor: pointer; text-align: left;
+  vertical-align: top; cursor: pointer; text-align: left;
   box-sizing: border-box;
 }
 .cell:active { filter: brightness(.94); }
-.cell .cin {
-  display: flex; flex-direction: column; justify-content: flex-start;
-  height: 100%; min-height: 0;
-}
+.cell .cin { display: flex; flex-direction: column; justify-content: flex-start; }
 .cell .nm {
-  font-size: 10px; font-weight: 600; line-height: 1.2;
-  max-height: 36px; overflow: hidden; word-break: break-all;
-  flex: 0 1 auto; min-height: 0;
+  font-size: 10px; font-weight: 600; line-height: 1.25;
+  word-break: break-all; white-space: normal; flex: 0 0 auto;
 }
 .cell .rm {
-  font-size: 9px; line-height: 1.15; opacity: .92; margin-top: 2px;
-  max-height: 22px; overflow: hidden; word-break: break-all;
-  flex: 0 0 auto;
+  font-size: 9px; line-height: 1.2; opacity: .92; margin-top: 2px;
+  word-break: break-all; white-space: normal; flex: 0 0 auto;
 }
 .cell.dim { opacity: .38; }
 /* 同格多门课：格内堆叠小卡片 */
 td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
 .cell.multi .mcard {
   border-radius: 7px; padding: 3px 4px; margin: 1px 0;
-  cursor: pointer; text-align: left; overflow: hidden; box-sizing: border-box;
+  cursor: pointer; text-align: left; box-sizing: border-box;
 }
 .cell.multi .mcard:active { filter: brightness(.94); }
 .cell.multi .mcard.dim { opacity: .38; }
-.cell.multi .mcard .cin {
-  display: flex; flex-direction: column; justify-content: flex-start;
-  height: 100%; min-height: 0;
-}
+.cell.multi .mcard .cin { display: flex; flex-direction: column; justify-content: flex-start; }
 .cell.multi .mcard .nm {
-  font-size: 9.5px; line-height: 1.2; overflow: hidden; word-break: break-all;
-  flex: 0 1 auto; min-height: 0;
+  font-size: 9.5px; line-height: 1.25; word-break: break-all; white-space: normal;
 }
 .cell.multi .mcard .rm {
-  font-size: 8.5px; line-height: 1.1; margin-top: 1px; opacity: .92;
-  max-height: 18px; overflow: hidden; word-break: break-all;
-  flex: 0 0 auto;
+  font-size: 8.5px; line-height: 1.2; margin-top: 1px; opacity: .92;
+  word-break: break-all; white-space: normal;
 }
 .kcb tr.break td {
   text-align: center; font-size: 9px; color: #B8BECA;
@@ -225,10 +215,11 @@ td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
   padding: 3px 10px; border-radius: 99px; font-weight: 600;
 }
 .detail-rows { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; padding-bottom: 4px; }
-.d-row { display: flex; gap: 12px; align-items: center; }
+.d-row { display: flex; gap: 12px; align-items: flex-start; }
 .d-ico { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
 .d-l { font-size: 11px; color: var(--dim); }
-.d-v { font-size: 14px; font-weight: 500; margin-top: 1px; }
+/* 地点等信息完整显示：可换行、不截断（长教室名不会被省略） */
+.d-v { font-size: 14px; font-weight: 500; margin-top: 1px; line-height: 1.45; word-break: break-all; white-space: normal; }
 .sheet-close-btn {
   width: 100%; margin-top: 16px; padding: 12px;
   background: #F1F3F7; border-radius: 12px;
@@ -256,6 +247,13 @@ td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
 }
 .srow input.num { width: 74px; text-align: center; }
 .srow input.txt { width: 110px; }
+/* 分段选择（夏季/冬季） */
+.seg { display: flex; background: #F1F3F7; border-radius: 9px; padding: 2px; flex-shrink: 0; }
+.seg button {
+  padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  color: #6B7280; background: none; border: none;
+}
+.seg button.on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
 .switch { position: relative; display: inline-block; width: 46px; height: 27px; flex-shrink: 0; }
 .switch input { display: none; }
 .switch span { position: absolute; inset: 0; background: #DDE1E8; border-radius: 99px; transition: .2s; }
@@ -420,8 +418,22 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       </div>
     </div>
 
+    <div class="group">
+      <div class="group-title">作息季节</div>
+      <div class="srow">
+        <div class="srow-main">
+          <div class="srow-label">上下课时间</div>
+          <div class="srow-desc">按学校作息表（每节 45 分钟）自动填入，切换后可在下面微调</div>
+        </div>
+        <div class="seg" id="seasonSeg">
+          <button type="button" data-season="summer" onclick="setSeason('summer')">夏季</button>
+          <button type="button" data-season="winter" onclick="setSeason('winter')">冬季</button>
+        </div>
+      </div>
+    </div>
+
     <details class="group" id="slotTimesGroup">
-      <summary><b>课表时间设置</b><span>调整每一节上下课时间（近似值，可按实际作息修改）</span></summary>
+      <summary><b>课表时间设置</b><span>按作息季节自动填入，可再手动微调</span></summary>
       <div id="slotTimeRows"></div>
     </details>
 
@@ -477,13 +489,27 @@ var CFG = {
   COURSE_API_PATH: '/student/pygl/py_kbcx_ew' /* 课表数据接口（插件按此名拦截响应） */
 };
 
-/* 安建大研究生系统节次（jcid 来自课表接口 rows，时间为近似值，可在设置中修改） */
-var DEFAULT_SLOT_TIMES = {
-  41: ['08:00', '08:45'], 42: ['08:55', '09:40'], 43: ['10:00', '10:45'], 44: ['10:55', '11:40'],
-  46: ['11:50', '12:35'],
-  49: ['14:00', '14:45'], 50: ['14:55', '15:40'], 51: ['16:00', '16:45'], 52: ['16:55', '17:40'],
-  56: ['19:00', '19:45'], 57: ['19:55', '20:40'], 58: ['20:50', '21:35']
+/* 安建大研究生作息时间（来源：学校作息表，每节 45 分钟）
+   夏季：下午 14:15 开始；冬季：下午 14:00 开始。上午/晚上两季相同 */
+var SLOT_TIMES_SUMMER = {
+  41: ['07:50', '08:35'], 42: ['08:40', '09:25'], 43: ['09:35', '10:20'], 44: ['10:25', '11:10'],
+  46: ['11:15', '12:00'],
+  49: ['14:15', '15:00'], 50: ['15:05', '15:50'], 51: ['16:00', '16:45'], 52: ['16:50', '17:35'],
+  56: ['18:40', '19:25'], 57: ['19:30', '20:15'], 58: ['20:20', '21:05']
 };
+var SLOT_TIMES_WINTER = {
+  41: ['07:50', '08:35'], 42: ['08:40', '09:25'], 43: ['09:35', '10:20'], 44: ['10:25', '11:10'],
+  46: ['11:15', '12:00'],
+  49: ['14:00', '14:45'], 50: ['14:50', '15:35'], 51: ['15:45', '16:30'], 52: ['16:35', '17:20'],
+  56: ['18:40', '19:25'], 57: ['19:30', '20:15'], 58: ['20:20', '21:05']
+};
+var SEASON_TIMES = { summer: SLOT_TIMES_SUMMER, winter: SLOT_TIMES_WINTER };
+var SEASON_NAMES = { summer: '夏季', winter: '冬季' };
+var DEFAULT_SEASON = 'summer';   /* 目前先按夏季作息 */
+var TIMES_VERSION = 2;           /* 作息默认值变更时 +1：可覆盖旧安装里保存的旧时间 */
+function seasonTimes(season) {
+  return JSON.parse(JSON.stringify(SEASON_TIMES[season] || SLOT_TIMES_SUMMER));
+}
 var DEFAULT_SLOTS = [
   { jcid: 41, mc: '上午1', sjbz: '上午' }, { jcid: 42, mc: '上午2', sjbz: '上午' },
   { jcid: 43, mc: '上午3', sjbz: '上午' }, { jcid: 44, mc: '上午4', sjbz: '上午' },
@@ -632,10 +658,8 @@ function parseCourseLine(line) {
 }
 
 function joinMeta(teacher, room) {
-  var parts = [];
-  if (teacher) parts.push(teacher);
-  if (room) parts.push(room);
-  return parts.join('·');
+  if (teacher && room) return teacher + '[' + room + ']';
+  return teacher || room || '';
 }
 
 /* 续行（学校系统有时把教室单独放在下一行）：挂到所属课程上，避免整行被丢弃 */
@@ -686,19 +710,41 @@ function defaultSettings() {
     showWeekend: false,
     showNonCurrent: false,
     term: '202701',
-    slotTimes: JSON.parse(JSON.stringify(DEFAULT_SLOT_TIMES))
+    season: DEFAULT_SEASON,
+    timesVersion: TIMES_VERSION,
+    slotTimes: seasonTimes(DEFAULT_SEASON)
   };
 }
 function loadSettings() {
   try {
     var s = JSON.parse(localStorage.getItem('kcb_settings') || '{}');
     var merged = Object.assign(defaultSettings(), s);
-    merged.slotTimes = Object.assign({}, DEFAULT_SLOT_TIMES, s.slotTimes || {});
+    var season = SEASON_NAMES[s.season] ? s.season : DEFAULT_SEASON;
+    merged.season = season;
+    if (!s.timesVersion || s.timesVersion < TIMES_VERSION) {
+      /* 旧版本保存的是近似时间：升级后一律换成学校作息表的时间 */
+      merged.slotTimes = seasonTimes(season);
+      merged.timesVersion = TIMES_VERSION;
+      try { localStorage.setItem('kcb_settings', JSON.stringify(merged)); } catch (e) {}
+    } else {
+      merged.slotTimes = Object.assign({}, seasonTimes(season), s.slotTimes || {});
+    }
     return merged;
   } catch (e) { return defaultSettings(); }
 }
 function saveSettings() {
   try { localStorage.setItem('kcb_settings', JSON.stringify(settings)); } catch (e) {}
+}
+/* 切换作息季节：整表换成该季作息（之后仍可在下面手动微调） */
+function setSeason(season) {
+  if (!SEASON_NAMES[season]) return;
+  settings.season = season;
+  settings.slotTimes = seasonTimes(season);
+  settings.timesVersion = TIMES_VERSION;
+  saveSettings();
+  syncSettingsForm();
+  renderAll();
+  showToast('已切换为' + SEASON_NAMES[season] + '作息');
 }
 
 /* ═══════════════ 周次计算 ═══════════════ */
@@ -800,20 +846,25 @@ function switchTab(tab) {
 }
 
 /* ═══════════════ 渲染 ═══════════════ */
-/* 卡片副行：教师 + 地点。优先用响应里原始的尾串（保证地点不丢），没有才用解析出的字段拼 */
+/* 卡片副行：教师[地点]（与学校页面一致，如「周叶君[5102]」），地点绝不省略 */
 function cardMeta(c) {
-  if (c.meta) return c.meta;
-  return joinMeta(c.teacher, c.room);
+  if (c.teacher && c.room) return c.teacher + '[' + c.room + ']';
+  if (c.room) return c.room;
+  if (c.teacher) return c.teacher;
+  return c.meta || '';
 }
 
-/* 课程名可占用的最大高度：按卡片跨的节数（和同格课程数）算，
-   保证名称下方一定留得下「教师·地点」那一行 */
-function nameMaxFor(span, coursesInCell) {
-  var per = coursesInCell > 1
-    ? Math.floor((span * 62 - 6) / coursesInCell)
-    : (span * 62 - 6);
-  return Math.max(20, per - 26);
+/* 卡片字号：卡片越高字号越大。
+   文字一律不截断、不设高度上限——内容多就让卡片自己长高，最后一行绝不会被切一半 */
+function cardFontFor(span, coursesInCell) {
+  var cardH = coursesInCell > 1
+    ? Math.floor((span * 66 + 3 * (span - 1) - 6) / coursesInCell) - 6
+    : (span * 66 + 3 * (span - 1) - 7);
+  var font = cardH >= 190 ? 14 : (cardH >= 140 ? 13 : (cardH >= 100 ? 11.5 : 10));
+  return { font: font, metaFont: Math.max(8.5, Math.round(font * 0.85 * 10) / 10) };
 }
+function nameStyle(fit) { return 'font-size:' + fit.font + 'px'; }
+function metaStyle(fit) { return 'font-size:' + fit.metaFont + 'px'; }
 
 function slotList() {
   if (data && data.slots && data.slots.length) {
@@ -945,22 +996,25 @@ function renderGrid() {
           var cc = st.list[0], dim = !inWeek(cc, viewWeek);
           var idx = cardRefs.push(Object.assign({}, cc, { span: st.span, slotIdx: i })) - 1;
           var meta = cardMeta(cc);
+          var fit1 = cardFontFor(st.span, 1);
           h += '<td class="cell ' + colorClass(cc.name) + (dim ? ' dim' : '') + '" rowspan="' + st.span +
                '" onclick="showDetail(' + idx + ')"><div class="cin">' +
-               '<div class="nm" style="max-height:' + nameMaxFor(st.span, 1) + 'px">' + esc(cc.name) + '</div>' +
-               (meta ? '<div class="rm">' + esc(meta) + '</div>' : '') + '</div></td>';
+               '<div class="nm" style="' + nameStyle(fit1) + '">' + esc(cc.name) + '</div>' +
+               (meta ? '<div class="rm" style="' + metaStyle(fit1) + '">' + esc(meta) + '</div>' : '') +
+               '</div></td>';
         } else {
           /* 同格多门课（不同周次段叠放）：格内堆叠小卡片 */
           var inner = '';
-          var nmMax = nameMaxFor(st.span, st.list.length);
+          var fit2 = cardFontFor(st.span, st.list.length);
           st.list.forEach(function (mc2) {
             var dim2 = !inWeek(mc2, viewWeek);
             var idx2 = cardRefs.push(Object.assign({}, mc2, { span: st.span, slotIdx: i })) - 1;
             var meta2 = cardMeta(mc2);
             inner += '<div class="mcard ' + colorClass(mc2.name) + (dim2 ? ' dim' : '') +
                      '" onclick="showDetail(' + idx2 + ')"><div class="cin">' +
-                     '<div class="nm" style="max-height:' + nmMax + 'px">' + esc(mc2.name) + '</div>' +
-                     (meta2 ? '<div class="rm">' + esc(meta2) + '</div>' : '') + '</div></div>';
+                     '<div class="nm" style="' + nameStyle(fit2) + '">' + esc(mc2.name) + '</div>' +
+                     (meta2 ? '<div class="rm" style="' + metaStyle(fit2) + '">' + esc(meta2) + '</div>' : '') +
+                     '</div></div>';
           });
           h += '<td class="cell multi" rowspan="' + st.span + '">' + inner + '</td>';
         }
@@ -1059,6 +1113,13 @@ function syncSettingsForm() {
   $('setTerm').value = settings.term || '';
   $('setFetchedAt').textContent = (data && data.fetchedAt && !data.demo)
     ? new Date(data.fetchedAt).toLocaleString('zh-CN') : '—';
+
+  /* 作息季节选中态 */
+  var segBtns = document.querySelectorAll('#seasonSeg button');
+  for (var bi = 0; bi < segBtns.length; bi++) {
+    var isOn = segBtns[bi].getAttribute('data-season') === settings.season;
+    if (segBtns[bi].classList) segBtns[bi].classList.toggle('on', isOn);
+  }
 
   var box = $('slotTimeRows');
   box.innerHTML = '';
