@@ -77,21 +77,21 @@ jobs:
           "$BT/apksigner" sign \
             --ks /tmp/release.keystore.p12 --ks-type PKCS12 \
             --ks-pass "pass:$PASS" \
-            --out "kcb-v1.0.${GITHUB_RUN_NUMBER}.apk" kcb-aligned.apk
-          "$BT/apksigner" verify --print-certs "kcb-v1.0.${GITHUB_RUN_NUMBER}.apk"
+            --out "kcb-v1.1.${GITHUB_RUN_NUMBER}.apk" kcb-aligned.apk
+          "$BT/apksigner" verify --print-certs "kcb-v1.1.${GITHUB_RUN_NUMBER}.apk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: kcb-apk
-          path: kcb-v1.0.*.apk
+          path: kcb-v1.1.*.apk
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v1.0.${GITHUB_RUN_NUMBER}"
+          TAG="v1.1.${GITHUB_RUN_NUMBER}"
           gh release view "$TAG" >/dev/null 2>&1 || \
-          gh release create "$TAG" kcb-v1.0.*.apk \
-            --title "我的课表 Android v1.0.${GITHUB_RUN_NUMBER}" \
-            --notes "安徽建筑大学研究生课表 App。下载 kcb-v1.0.${GITHUB_RUN_NUMBER}.apk 安装；首次安装需允许「未知来源应用」。之后更新直接安装新版覆盖即可。"
+          gh release create "$TAG" kcb-v1.1.*.apk \
+            --title "我的课表 Android v1.1.${GITHUB_RUN_NUMBER}" \
+            --notes "安徽建筑大学研究生课表 App。下载 kcb-v1.1.${GITHUB_RUN_NUMBER}.apk 安装；首次安装需允许「未知来源应用」。之后更新直接安装新版覆盖即可。"

@@ -30,48 +30,53 @@ body {
 .hidden { display: none !important; }
 button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
 
-/* ─────────── 登录页 ─────────── */
-.login {
-  min-height: 100dvh;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 32px 28px calc(32px + env(safe-area-inset-bottom, 0px));
+/* ─────────── 底部 Tab 栏 ─────────── */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
+  display: flex;
+  background: rgba(255, 255, 255, .96);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--line);
+  padding: 5px 0 calc(5px + env(safe-area-inset-bottom, 0px));
 }
-.login-logo-box {
-  width: 88px; height: 88px; border-radius: 22px;
-  background: var(--accent); color: #fff;
-  font-size: 44px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, .25);
-  margin-bottom: 18px;
+.tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: 11px; color: var(--dim); padding: 4px 0 2px;
 }
-.login-title { font-size: 22px; font-weight: 700; }
-.login-sub { font-size: 13px; color: var(--dim); margin-top: 6px; margin-bottom: 36px; }
-.login-form { width: 100%; max-width: 340px; }
-.field { margin-bottom: 14px; }
-.field label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; }
-.field input {
-  width: 100%; padding: 13px 16px;
-  background: #F1F3F7; border: none; border-radius: 12px;
-  font-size: 16px; color: var(--text); outline: none;
-}
-.field input:focus { background: #EAEFF9; box-shadow: inset 0 0 0 1.5px var(--accent); }
+.tab .tab-ico { font-size: 21px; line-height: 1; filter: grayscale(1) opacity(.5); }
+.tab.active { color: var(--accent); font-weight: 700; }
+.tab.active .tab-ico { filter: none; }
+
+/* ─────────── 数据同步 / 导入 ─────────── */
 .btn-primary {
   width: 100%; padding: 14px;
   background: var(--accent); border-radius: 12px;
   color: #fff; font-size: 16px; font-weight: 600;
-  margin-top: 6px; transition: opacity .15s;
+  margin-top: 2px; transition: opacity .15s;
 }
 .btn-primary:active { opacity: .75; }
 .btn-primary:disabled { opacity: .5; }
-.login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; min-height: 18px; }
-.remember {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  margin-top: 12px; font-size: 13px; color: var(--dim);
+.link-btn { width: 100%; padding: 12px; font-size: 13px; color: var(--accent); }
+.mini-btn {
+  padding: 8px 12px; background: #F1F3F7; border-radius: 9px;
+  font-size: 12px; color: #3C4353; flex-shrink: 0;
 }
-.remember input { width: 16px; height: 16px; accent-color: var(--accent); }
-.login-demo { margin-top: 22px; font-size: 13px; color: var(--accent); }
-.login-note { margin-top: 14px; font-size: 11px; color: #B6BBC4; text-align: center; max-width: 300px; line-height: 1.6; }
+.login-error { color: var(--danger); font-size: 12px; text-align: center; min-height: 16px; }
+
+/* ─────────── 课表空状态（未登录引导） ─────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 68px 24px 40px; text-align: center;
+}
+.empty-logo {
+  width: 64px; height: 64px; border-radius: 16px;
+  background: var(--accent); color: #fff;
+  font-size: 30px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, .25);
+}
+.empty-state .btn-primary { max-width: 220px; }
+.empty-link { font-size: 13px; color: var(--accent); }
 
 /* ─────────── 课表页头部 ─────────── */
 .head-sticky {
@@ -113,7 +118,7 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 .wk-today.on { background: var(--accent); color: #fff; }
 
 /* ─────────── 课表网格 ─────────── */
-.grid { padding: 2px 8px 44px; }
+.grid { padding: 2px 8px calc(66px + env(safe-area-inset-bottom, 0px)); }
 .grid.anim-l { animation: wkInL .22s ease; }
 .grid.anim-r { animation: wkInR .22s ease; }
 @keyframes wkInL { from { opacity: .35; transform: translateX(26px); } }
@@ -216,21 +221,8 @@ td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
 .week-grid button.now { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--accent); font-weight: 700; }
 .week-grid button.cur.now { box-shadow: none; }
 
-/* ─────────── 设置页 ─────────── */
-.settings {
-  position: fixed; inset: 0; z-index: 300; background: var(--bg);
-  transform: translateX(100%); transition: transform .25s;
-  display: flex; flex-direction: column;
-}
-.settings.open { transform: none; }
-.settings-head {
-  display: flex; align-items: center; gap: 6px;
-  padding: calc(10px + var(--safe-top)) 14px 10px;
-  background: var(--surface); border-bottom: 1px solid var(--line);
-}
-.sh-back { font-size: 14px; color: var(--accent); padding: 4px 6px 4px 0; }
-.settings-head b { font-size: 16px; }
-.settings-body { flex: 1; overflow-y: auto; padding: 14px 14px calc(24px + env(safe-area-inset-bottom, 0px)); }
+/* ─────────── 设置页（Tab 内容页） ─────────── */
+.settings-body { padding: 12px 14px calc(70px + env(safe-area-inset-bottom, 0px)); }
 .group { background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
 .group-title { font-size: 12px; color: var(--dim); padding: 12px 16px 2px; }
 .srow { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
@@ -285,33 +277,8 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
 </head>
 <body>
 
-<!-- ═══════════ 登录页 ═══════════ -->
-<div class="login" id="loginPage">
-  <div class="login-logo-box">课</div>
-  <div class="login-title">我的课表</div>
-  <div class="login-sub">安徽建筑大学 · 研究生系统</div>
-  <form class="login-form" id="loginForm">
-    <div class="field">
-      <label>学号</label>
-      <input type="text" id="username" placeholder="请输入学号" autocomplete="username">
-    </div>
-    <div class="field">
-      <label>密码</label>
-      <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
-    </div>
-    <button class="btn-primary" type="submit" id="loginBtn">登 录</button>
-    <label class="remember">
-      <input type="checkbox" id="rememberPw">
-      记住密码（仅保存在本机，方便下次自动登录）
-    </label>
-    <div class="login-error" id="loginError"></div>
-  </form>
-  <button class="login-demo" onclick="enterDemo()">先看看示例课表 →</button>
-  <div class="login-note">登录直接连接学校统一身份认证，课表数据只保存在你的手机上，不经过任何第三方服务器。</div>
-</div>
-
-<!-- ═══════════ 课表页 ═══════════ -->
-<div class="hidden" id="schedulePage">
+<!-- ═══════════ 课表页（Tab 1，默认）═══════════ -->
+<div id="schedulePage">
   <div class="head-sticky">
     <div class="topbar">
       <div class="topbar-title">
@@ -319,8 +286,6 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
         <span class="chip hidden" id="demoChip">示例数据</span>
       </div>
       <button class="icon-btn" onclick="doRefresh(true)" title="刷新">⟳</button>
-      <button class="icon-btn" onclick="openSettings()" title="设置">⚙</button>
-      <button class="icon-btn wide" onclick="doLogout()">退出</button>
     </div>
     <div class="weekbar">
       <button class="wk-arrow" onclick="shiftWeek(-1)">‹</button>
@@ -355,13 +320,34 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
   </div>
 </div>
 
-<!-- ═══════════ 设置页 ═══════════ -->
-<div class="settings" id="settingsPage">
-  <div class="settings-head">
-    <button class="sh-back" onclick="closeSettings()">‹ 返回</button>
-    <b>设置</b>
+<!-- ═══════════ 设置页（Tab 2）═══════════ -->
+<div class="hidden" id="settingsPage">
+  <div class="head-sticky">
+    <div class="topbar"><div class="topbar-title">设置</div></div>
   </div>
   <div class="settings-body">
+
+    <!-- 数据同步：打开学校原生网页，登录后自动捕获课表响应 -->
+    <div class="group">
+      <div class="group-title">数据同步</div>
+      <div class="srow">
+        <div class="srow-main">
+          <div class="srow-label">从研究生系统同步</div>
+          <div class="srow-desc">打开学校网页登录（学号/密码/验证码都在学校页面输入），进入「培养管理 → 学生课表查询」后课表自动捕获导入</div>
+        </div>
+      </div>
+      <div style="padding: 10px 16px 12px;">
+        <button class="btn-primary" onclick="openWebviewSync()">打开研究生系统同步</button>
+      </div>
+      <div class="srow" style="border-top: 1px solid #F3F4F8;">
+        <div class="srow-main">
+          <div class="srow-label">上次更新</div>
+          <div class="srow-desc" id="setFetchedAt">—</div>
+        </div>
+        <button class="mini-btn" onclick="openWebviewSync()">立即刷新</button>
+      </div>
+    </div>
+
     <div class="group">
       <div class="group-title">基本设置</div>
       <div class="srow">
@@ -417,20 +403,33 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       <div id="slotTimeRows"></div>
     </details>
 
+    <details class="group">
+      <summary><b>手动导入课表数据</b><span>电脑浏览器 F12 抓取 py_kbcx_ew 响应 JSON 粘贴导入</span></summary>
+      <div style="padding: 10px 16px 14px;">
+        <textarea id="importJson" rows="6" placeholder='粘贴 {"rows":[...],"week":"Tuesday"} 格式的 JSON' style="width:100%; padding:10px; background:#F1F3F7; border:none; border-radius:10px; font-size:11px; color:var(--text); outline:none; font-family:monospace; box-sizing:border-box;"></textarea>
+        <button class="btn-primary" onclick="doImportJson()">导 入</button>
+        <div class="login-error" id="importError"></div>
+      </div>
+    </details>
+
     <div class="group">
       <div class="group-title">数据</div>
       <div class="srow">
         <div class="srow-main">
-          <div class="srow-label">上次更新</div>
-          <div class="srow-desc" id="setFetchedAt">—</div>
+          <div class="srow-label">清除课表数据</div>
+          <div class="srow-desc">删除本机缓存的课表（不影响学校系统）</div>
         </div>
-      </div>
-      <div class="srow">
-        <button class="danger-btn" onclick="doLogout()">清除数据并退出登录</button>
+        <button class="danger-btn" style="width:auto; padding:8px 14px; font-size:13px;" onclick="clearData()">清除</button>
       </div>
     </div>
-    <div class="settings-foot">我的课表 · 安徽建筑大学研究生 · Android v1.0</div>
+    <div class="settings-foot">我的课表 · 安徽建筑大学研究生 · Android v1.1</div>
   </div>
+</div>
+
+<!-- ═══════════ 底部 Tab 栏 ═══════════ -->
+<div class="tabbar" id="tabbar">
+  <button class="tab active" id="tabBtnSchedule" onclick="switchTab('schedule')"><span class="tab-ico">📅</span>课程表</button>
+  <button class="tab" id="tabBtnSettings" onclick="switchTab('settings')"><span class="tab-ico">⚙️</span>设置</button>
 </div>
 
 <div id="toast"></div>
@@ -443,16 +442,13 @@ var DAYS = ['一', '二', '三', '四', '五', '六', '日'];
 var DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 var BREAK_LABEL = { '下午': '午 休', '晚上': '晚 休' };
 var CACHE_KEY = 'kcb_cache_v1';
-var CREDS_KEY = 'kcb_creds';
 
-/* 安徽建筑大学系统地址（与 Flask 版 app.py 保持一致） */
+/* 安徽建筑大学系统地址 */
 var CFG = {
-  SSO_LOGIN_URL: 'https://sso.webvpn.ahjzu.edu.cn/sso/login',
-  PORTAL_BASE: 'https://portal.ahjzu.edu.cn',
   WEBVPN_BASE: 'https://219-231-15-133.webvpn.ahjzu.edu.cn',
   GRADUATE_APP: '/gmis5',
-  ENTRY_PATH: '/student/pygl/xskbcx',
-  COURSE_API_PATH: '/student/pygl/py_kbcx_ew'
+  ENTRY_PATH: '/student/pygl/xskbcx',        /* 学生课表查询页（WebView 打开的入口） */
+  COURSE_API_PATH: '/student/pygl/py_kbcx_ew' /* 课表数据接口（原生插件按此名拦截响应） */
 };
 
 /* 安建大研究生系统节次（jcid 来自课表接口 rows，时间为近似值，可在设置中修改） */
@@ -505,7 +501,6 @@ var data = null;        /* { courses, slots, week, term, fetchedAt, demo } */
 var viewWeek = 1;
 var cardRefs = [];
 var colorMap = {};
-var state = { loggedIn: false, sessionToken: null };
 
 /* ═══════════════ 工具 ═══════════════ */
 function $(id) { return document.getElementById(id); }
@@ -515,101 +510,65 @@ function esc(s) {
   });
 }
 function deepCopy(o) { try { return structuredClone(o); } catch (e) { return JSON.parse(JSON.stringify(o)); } }
-function withTimeout(p, ms, label) {
-  return Promise.race([p, new Promise(function (_, rej) {
-    setTimeout(function () { rej(new Error((label || '请求') + '超时')); }, ms);
-  })]);
+
+/* ═══════════════ 数据同步（原生 WebView 打开学校网页，自动捕获课表响应） ═══════════════
+   打开研究生系统真实页面 → 用户登录/验证码都在学校页面完成 →
+   原生插件注入 JS 拦截 py_kbcx_ew 的 XHR/fetch 响应 → 回传 JSON → 解析映射到课表 */
+var KcbWebview = null;
+
+function initNative() {
+  try {
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      KcbWebview = window.Capacitor.Plugins && window.Capacitor.Plugins.KcbWebview;
+      if (KcbWebview && KcbWebview.addListener) {
+        KcbWebview.addListener('scheduleResponse', function (ev) { handleCapture(ev); });
+      }
+    }
+  } catch (e) { KcbWebview = null; }
 }
 
-/* ═══════════════ 凭证保存（可选） ═══════════════ */
-function loadCreds() {
-  try { var c = JSON.parse(localStorage.getItem(CREDS_KEY)); return c && c.u ? c : null; } catch (e) { return null; }
-}
-function saveCreds(u, p) {
-  try { localStorage.setItem(CREDS_KEY, JSON.stringify({ u: u, p: p })); } catch (e) {}
-}
-function clearCreds() { try { localStorage.removeItem(CREDS_KEY); } catch (e) {} }
-
-/* ═══════════════ 学校系统接口（App 内直连，无服务器） ═══════════════
-   依赖 CapacitorHttp（原生网络层，自动处理 Cookie、无视 CORS） */
-async function ssoLogin(username, password) {
-  var loginUrl = CFG.SSO_LOGIN_URL + '?service=' + CFG.PORTAL_BASE + '/user/simpleSSOLogin';
-
-  /* Step 1: 获取登录页，提取隐藏表单字段 */
-  var r1 = await withTimeout(fetch(loginUrl), 25000, '登录');
-  var html = await r1.text();
-  var doc = new DOMParser().parseFromString(html, 'text/html');
-  var form = {};
-  doc.querySelectorAll('input[type="hidden"]').forEach(function (i) {
-    if (i.name) form[i.name] = i.value || '';
+/* 打开学校研究生系统页面（WebVPN 入口 = 学生课表查询页；未登录会先跳到登录页） */
+function openWebviewSync() {
+  if (!KcbWebview) {
+    showToast('自动同步需要安装 App；也可用下方「手动导入课表数据」');
+    return;
+  }
+  KcbWebview.open({ url: CFG.WEBVPN_BASE + CFG.GRADUATE_APP + CFG.ENTRY_PATH }).catch(function (e) {
+    showToast('打开失败：' + (e.message || e));
   });
-  form.username = username;
-  form.password = password;
-
-  /* Step 2: 提交登录 */
-  var r2 = await withTimeout(fetch(loginUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-    body: Object.keys(form).map(function (k) {
-      return encodeURIComponent(k) + '=' + encodeURIComponent(form[k]);
-    }).join('&')
-  }), 25000, '登录');
-
-  var text = await r2.text();
-  var finalUrl = r2.url || '';
-
-  if (text.indexOf('密码错误') >= 0 || text.indexOf('用户名不存在') >= 0) {
-    return { ok: false, msg: '用户名或密码错误' };
-  }
-  if (finalUrl.indexOf('portal.ahjzu.edu.cn') >= 0) {
-    return { ok: true };
-  }
-  /* 兜底判断：成功后一般会跳走，失败则停在登录页 */
-  if (!/type=["']?password/i.test(text)) {
-    return { ok: true };
-  }
-  return { ok: false, msg: '登录失败：页面停留在登录页（可能需要验证码，或学校修改了登录流程）' };
 }
 
-async function ensureWebvpnSession() {
-  if (state.sessionToken) return state.sessionToken;
-  var entry = CFG.WEBVPN_BASE + CFG.GRADUATE_APP + CFG.ENTRY_PATH;
-  var r = await withTimeout(fetch(entry), 25000, '访问研究生系统');
-  var m = (r.url || '').match(/\(S\(([^)]+)\)\)/);
-  if (!m) m = (await r.text()).match(/\(S\(([^)]+)\)\)/);
-  if (m) {
-    state.sessionToken = m[1];
-    return state.sessionToken;
-  }
-  throw new Error('无法获取 WebVPN 会话（登录可能已过期）');
+/* 收到 py_kbcx_ew 响应 JSON → 解析并映射到课表页 */
+function handleCapture(ev) {
+  var raw = (typeof ev.body === 'string') ? JSON.parse(ev.body) : ev.body;
+  if (!raw || !raw.rows || !raw.rows.length) throw new Error('响应里没有课表数据（rows 为空）');
+  data = {
+    courses: parseCourses(raw),        /* z1~z7 → 每门课的周次/教师/教室/星期/节次 */
+    slots: extractSlots(raw),          /* jcid 节次结构（上午1~晚上12） */
+    week: raw.week || '',
+    term: settings.term,
+    fetchedAt: Date.now()
+  };
+  cacheSave();
+  viewWeek = currentWeek();
+  renderAll();
+  switchTab('schedule');
+  showToast('课表已同步 ✓');
 }
 
-function webvpnUrl(path) {
-  var base = CFG.WEBVPN_BASE + CFG.GRADUATE_APP;
-  return state.sessionToken ? base + '/(S(' + state.sessionToken + '))' + path : base + path;
-}
-
-async function fetchScheduleRaw(term) {
-  await ensureWebvpnSession();
-  var r = await withTimeout(fetch(webvpnUrl(CFG.COURSE_API_PATH), {
-    method: 'POST',
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest',
-      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-      'Accept': 'application/json, text/javascript, */*; q=0.01',
-      'Referer': webvpnUrl(CFG.ENTRY_PATH)
-    },
-    body: 'kblx=xs&termcode=' + encodeURIComponent(term || '202701')
-  }), 25000, '获取课表');
-
-  if (!r.ok) throw new Error('课表接口 HTTP ' + r.status);
-  var d;
-  try { d = await r.json(); } catch (e) { throw new Error('课表接口返回了非 JSON 内容'); }
-  if (!d || !d.rows) {
-    state.sessionToken = null; /* 会话标识可能失效，下次重新获取 */
-    throw new Error('课表接口返回异常（无 rows 字段）');
+/* 手动导入：电脑浏览器 F12 抓到的 py_kbcx_ew 响应 JSON 粘贴进来 */
+function doImportJson() {
+  var err = $('importError');
+  err.textContent = '';
+  var txt = $('importJson').value.trim();
+  if (!txt) { err.textContent = '请先粘贴 JSON'; return; }
+  try {
+    handleCapture({ body: txt });
+    $('importJson').value = '';
+    showToast('课表已导入 ✓');
+  } catch (e) {
+    err.textContent = '解析失败：' + (e.message || e);
   }
-  return d;
 }
 
 /* ═══════════════ 课表数据解析（安建大研究生系统格式） ═══════════════ */
@@ -725,73 +684,14 @@ function sameCourse(a, b) {
   return a.name === b.name && a.room === b.room && a.teacher === b.teacher && a.weeks === b.weeks;
 }
 
-/* ═══════════════ 登录 / 刷新 / 缓存 ═══════════════ */
-async function doLogin(ev) {
-  if (ev) ev.preventDefault();
-  var u = $('username').value.trim(), p = $('password').value;
-  var err = $('loginError'), btn = $('loginBtn');
-  if (!u || !p) { err.textContent = '请输入学号和密码'; return false; }
-  btn.disabled = true; btn.textContent = '登录中…'; err.textContent = '';
-  try {
-    var r = await ssoLogin(u, p);
-    if (r.ok) {
-      state.loggedIn = true;
-      if ($('rememberPw').checked) saveCreds(u, p); else clearCreds();
-      showSchedule();
-      await doRefresh(false);
-    } else {
-      err.textContent = r.msg || '登录失败';
-    }
-  } catch (e) {
-    err.textContent = '网络错误：' + (e.message || '请稍后重试');
-  } finally {
-    btn.disabled = false; btn.textContent = '登 录';
-  }
-  return false;
-}
-
+/* ═══════════════ 刷新 / 缓存 ═══════════════ */
 async function doRefresh(manual) {
   if (data && data.demo) {
-    if (manual) showToast('示例模式：登录后才能获取真实课表');
+    if (manual) showToast('示例模式：请在「设置」中同步真实课表');
     return;
   }
-  try {
-    if (!state.loggedIn) {
-      var creds = loadCreds();
-      if (!creds) {
-        if (manual) showToast('请先登录');
-        showLogin();
-        return;
-      }
-      var lr = await ssoLogin(creds.u, creds.p);
-      if (!lr.ok) {
-        clearCreds();
-        if (manual) showToast(lr.msg || '登录已过期，请重新登录');
-        showLogin();
-        return;
-      }
-      state.loggedIn = true;
-    }
-    var raw = await fetchScheduleRaw(settings.term);
-    data = {
-      courses: parseCourses(raw),
-      slots: extractSlots(raw),
-      week: raw.week || '',
-      term: settings.term,
-      fetchedAt: Date.now()
-    };
-    cacheSave();
-    viewWeek = currentWeek();
-    renderAll();
-    if (manual) showToast('课表已更新 ✓');
-  } catch (e) {
-    state.sessionToken = null;
-    if (!data) {
-      $('grid').innerHTML = '<div class="week-empty">⚠ ' + esc(e.message || '获取失败') +
-        '<br>请点击右上角 ⟳ 重试，或退出后重新登录</div>';
-    }
-    if (manual) showToast(e.message || '获取失败');
-  }
+  if (KcbWebview) { openWebviewSync(); return; }
+  if (manual) showToast('自动同步需要安装 App，或用「手动导入课表数据」');
 }
 
 function cacheSave() {
@@ -805,10 +705,12 @@ function cacheLoad() {
   } catch (e) { return null; }
 }
 
-async function doLogout() {
-  clearCreds();
+function clearData() {
+  data = null;
   try { localStorage.removeItem(CACHE_KEY); } catch (e) {}
-  location.replace('/');
+  viewWeek = currentWeek();
+  renderAll();
+  showToast('课表数据已清除');
 }
 
 function enterDemo() {
@@ -818,19 +720,24 @@ function enterDemo() {
     week: '', term: '202701', fetchedAt: Date.now(), demo: true
   };
   viewWeek = currentWeek();
-  showSchedule();
+  switchTab('schedule');
   showToast('当前为示例数据，仅供预览界面');
 }
 
-/* ═══════════════ 页面切换 ═══════════════ */
-function showLogin() {
-  $('loginPage').classList.remove('hidden');
-  $('schedulePage').classList.add('hidden');
-}
-function showSchedule() {
-  $('loginPage').classList.add('hidden');
-  $('schedulePage').classList.remove('hidden');
-  renderAll();
+/* ═══════════════ Tab 切换 ═══════════════ */
+var curTab = 'schedule';
+function switchTab(tab) {
+  curTab = tab;
+  $('schedulePage').classList.toggle('hidden', tab !== 'schedule');
+  $('settingsPage').classList.toggle('hidden', tab !== 'settings');
+  $('tabBtnSchedule').classList.toggle('active', tab === 'schedule');
+  $('tabBtnSettings').classList.toggle('active', tab === 'settings');
+  window.scrollTo(0, 0);
+  if (tab === 'settings') {
+    syncSettingsForm();
+  } else {
+    renderAll();
+  }
 }
 
 /* ═══════════════ 渲染 ═══════════════ */
@@ -875,7 +782,14 @@ function renderGrid() {
   var wrap = $('grid');
   cardRefs = [];
   if (!data) {
-    wrap.innerHTML = '<div class="loading"><div class="spinner"></div>获取课表中…</div>';
+    /* 没有数据：空状态引导（登录/同步/示例） */
+    wrap.innerHTML = '<div class="empty-state">' +
+      '<div class="empty-logo">课</div>' +
+      '<div style="font-size:15px;font-weight:600;">还没有课表数据</div>' +
+      '<div style="font-size:12px;color:var(--dim);line-height:1.8;">打开研究生系统网页登录后<br>进入「培养管理 → 学生课表查询」<br>课表会自动同步进来</div>' +
+      '<button class="btn-primary" onclick="openWebviewSync()">登录并同步课表</button>' +
+      '<button class="empty-link" onclick="enterDemo()">先看看示例课表 →</button>' +
+      '</div>';
     return;
   }
   var slots = slotList();
@@ -1054,8 +968,8 @@ function goToday() {
   window.scrollTo(0, 0);
 }
 
-/* ═══════════════ 设置页 ═══════════════ */
-function openSettings() {
+/* ═══════════════ 设置页表单同步 ═══════════════ */
+function syncSettingsForm() {
   $('setStart').value = settings.semesterStart;
   $('setTotal').value = settings.totalWeeks;
   $('setWeekOverride').value = settings.weekOverride > 0 ? settings.weekOverride : '';
@@ -1085,9 +999,7 @@ function openSettings() {
       saveSettings(); renderAll();
     });
   });
-  $('settingsPage').classList.add('open');
 }
-function closeSettings() { $('settingsPage').classList.remove('open'); }
 
 /* ═══════════════ Toast / 下拉刷新 ═══════════════ */
 var toastTimer = null;
@@ -1100,8 +1012,6 @@ function showToast(msg) {
 }
 
 function bindStatic() {
-  $('loginForm').addEventListener('submit', doLogin);
-
   $('setStart').addEventListener('change', function (e) {
     if (!e.target.value) return;
     settings.semesterStart = e.target.value;
@@ -1171,9 +1081,9 @@ function bindStatic() {
     swipeWeek(dx < 0 ? 1 : -1);                                /* 左滑下周，右滑上周 */
   }, { passive: true });
 
-  /* 电脑上方向键切换周次 */
+  /* 电脑上方向键切换周次（设置页打开时不响应） */
   document.addEventListener('keydown', function (e) {
-    if ($('settingsPage').classList.contains('open')) return;
+    if (!$('settingsPage').classList.contains('hidden')) return;
     if (e.key === 'ArrowLeft') swipeWeek(-1);
     else if (e.key === 'ArrowRight') swipeWeek(1);
   });
@@ -1181,29 +1091,18 @@ function bindStatic() {
 
 /* ═══════════════ 启动 ═══════════════ */
 (function init() {
+  initNative();
   bindStatic();
   var q = new URLSearchParams(location.search);
   if (q.get('demo') === '1') { enterDemo(); return; }
 
+  /* 有缓存直接显示课表（默认 Tab），没有则显示空状态引导 */
   var cached = cacheLoad();
   if (cached) {
     data = cached;
     viewWeek = currentWeek();
-    showSchedule();
   }
-  /* 有保存的账号密码则静默自动登录并刷新 */
-  var creds = loadCreds();
-  if (creds) {
-    $('username').value = creds.u;
-    ssoLogin(creds.u, creds.p).then(function (r) {
-      if (!r.ok) { clearCreds(); return; }
-      state.loggedIn = true;
-      if (!data) showSchedule();
-      return doRefresh(false);
-    }).catch(function () {});
-  } else if (!cached) {
-    showLogin();
-  }
+  renderAll();
 })();
 </script>
 </body>

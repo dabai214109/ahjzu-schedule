@@ -14,8 +14,19 @@
 ### 下载安装
 
 1. 打开仓库 **Releases** 页面：https://github.com/dabai214109/ahjzu-schedule/releases
-2. 下载最新版 `kcb-v1.0.x.apk`
+2. 下载最新版 `kcb-v1.1.x.apk`
 3. 手机上安装（首次需允许「未知来源应用」），之后更新直接覆盖安装
+
+### 使用（v1.1：原生网页同步课表）
+
+App 打开就是课表页，底部两个 Tab：**课程表 / 设置**。首次同步课表：
+
+1. 底部切到 **设置** → 点 **打开研究生系统同步**（或课表页空状态的「登录并同步课表」）
+2. 弹出学校**原生网页**：正常登录（学号 / 密码 / 验证码都在学校页面输入，App 不碰账号密码）
+3. 进入 **培养管理 → 学生课表查询**：页面请求课表接口时，App 自动捕获 `py_kbcx_ew` 响应并映射到课表页，窗口自动关闭
+4. 之后打开 App 直接看课表（本机缓存），左右滑动切换周次；**立即刷新**会重新打开网页（已登录时秒同步）
+
+电脑上抓到过课表 JSON？设置 → **手动导入课表数据** 粘贴即可，无需登录。
 
 ### 云端编译（本地零环境）
 
@@ -25,14 +36,13 @@ App 编译**完全在 GitHub Actions 上进行**，本地不需要装 Node/Java/
 - 手动编译：仓库 **Actions** → **Build Android APK** → **Run workflow**
 - 编译产物自动发布到 **Releases**，并附在 Actions Artifacts 里
 
-流程：CI 拉取代码 → `npm install` + `npx cap add android` 生成 Android 工程 → 替换图标/应用名/版本号 → `gradlew assembleRelease` → 用正式密钥签名 → 发布 Release。
+流程：CI 拉取代码 → `npm install` + `npx cap add android` 生成 Android 工程 → 替换图标/应用名/版本号 → 注入原生 WebView 插件 → `gradlew assembleRelease` → 用正式密钥签名 → 发布 Release。
 
 ### App 技术要点
 
 - **Capacitor** 打包 `android-app/www/index.html`（单文件前端，与网页版同款界面）
-- **CapacitorHttp**：原生网络层发请求，**绕过 CORS**、自动管理学校系统的 Cookie
-- SSO 登录 + WebVPN `S(...)` 会话提取 + 课表解析逻辑全部内置在 App 里
-- 可选「记住密码」：仅存本机（localStorage），下次打开自动登录刷新
+- **原生 WebView 插件**（`.github/android-plugin/KcbWebviewPlugin.java`）：打开学校研究生系统真实网页，注入 JS 拦截 `py_kbcx_ew` 的 XHR/fetch 响应，回传前端解析——登录、验证码、Cookie 全部由学校页面和系统 WebView 自己处理，App 不保存任何账号密码
+- 课表数据解析（`z1~z7` / `jcid` / 一格多课 / 连堂合并）内置前端，真实抓包数据回归测试 38 项
 - 离线可用：课表缓存在本机，断网也能看
 
 ### 签名密钥（重要）

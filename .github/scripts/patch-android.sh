@@ -38,6 +38,10 @@ EOF
 
 echo "==> 版本号 (run #${GITHUB_RUN_NUMBER})"
 sed -i "s|versionCode [0-9][0-9]*|versionCode ${GITHUB_RUN_NUMBER}|" "$APP/app/build.gradle"
-sed -i "s|versionName \"[^\"]*\"|versionName \"1.0.${GITHUB_RUN_NUMBER}\"|" "$APP/app/build.gradle"
+sed -i "s|versionName \"[^\"]*\"|versionName \"1.1.${GITHUB_RUN_NUMBER}\"|" "$APP/app/build.gradle"
+
+echo "==> 注册原生 WebView 插件（课表响应捕获）"
+cp .github/android-plugin/KcbWebviewPlugin.java "$APP/app/src/main/java/com/dabai/kcb/"
+cp .github/android-plugin/MainActivity.java     "$APP/app/src/main/java/com/dabai/kcb/MainActivity.java"
 
 echo "==> 定制完成"
