@@ -133,7 +133,6 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
 .slot b { display: block; font-size: 10px; color: #5A6272; font-weight: 600; }
 .slot span { display: block; font-size: 8px; line-height: 1.35; }
 .kcb td.empty { height: 66px; }
-.kcb td.empty.today-col { background: rgba(59, 130, 246, .055); border-radius: 9px; }
 /* 卡片：文字不做任何截断，内容多就让卡片自己长高（最后一行不会被切一半）；
    字号按卡片高低自动放大，卡片越高字越大 */
 .kcb td.cell {
@@ -438,9 +437,9 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
     </details>
 
     <details class="group">
-      <summary><b>手动导入课表数据</b><span>电脑浏览器 F12 抓取 py_kbcx_ew 响应 JSON 粘贴导入</span></summary>
+      <summary><b>粘贴响应文本</b><span>把 py_kbcx_ew 的响应原文整段粘进来，自动映射到课表</span></summary>
       <div style="padding: 10px 16px 14px;">
-        <textarea id="importJson" rows="6" placeholder='粘贴 {"rows":[...],"week":"Tuesday"} 格式的 JSON' style="width:100%; padding:10px; background:#F1F3F7; border:none; border-radius:10px; font-size:11px; color:var(--text); outline:none; font-family:monospace; box-sizing:border-box;"></textarea>
+        <textarea id="importJson" rows="8" placeholder='粘贴响应原文，例如：&#10;{"rows":[{"jcid":41,"sjbz":"上午","mc":"上午1","z3":"&lt;br/&gt;新时代中国特色社会主义理论与实践4班[1-8周] 周叶君[5102]"},…],"week":"Wednesday"}' style="width:100%; padding:10px; background:#F1F3F7; border:none; border-radius:10px; font-size:11px; color:var(--text); outline:none; font-family:monospace; box-sizing:border-box;"></textarea>
         <button class="btn-primary" onclick="doImportJson()">导 入</button>
         <div class="login-error" id="importError"></div>
       </div>
@@ -584,7 +583,7 @@ function initNative() {
    which='grad'          → 直接进研究生系统（Cookie 还在时用，省一步） */
 function openWebviewSync(which) {
   if (!KcbWebview) {
-    showToast('自动同步需要安装 App；也可用下方「手动导入课表数据」');
+    showToast('自动同步需要安装 App；也可用下方「粘贴响应文本」');
     return;
   }
   var url = (which === 'grad')
@@ -613,14 +612,46 @@ function handleCapture(ev) {
   showToast('课表已同步 ✓');
 }
 
-/* 手动导入：电脑浏览器 F12 抓到的 py_kbcx_ew 响应 JSON 粘贴进来 */
+/* 粘贴进来的响应文本：先截出 {...} 主体，再把字符串里的真换行转义回去 */
+function extractJsonObject(txt) {
+  var s = String(txt || '').replace(/^\uFEFF/, '').trim();
+  var a = s.indexOf('{'), b = s.lastIndexOf('}');
+  if (a < 0 || b <= a) return '';
+  return s.slice(a, b + 1);
+}
+/* 浏览器里复制出来的 JSON，字符串里的 \n 常变成真实换行（非法 JSON）：
+   逐字符扫描，只对「字符串内部」的控制字符做转义，结构里的换行不动 */
+function sanitizeJsonText(s) {
+  var out = '', inStr = false, esc = false;
+  for (var i = 0; i < s.length; i++) {
+    var ch = s.charAt(i), code = s.charCodeAt(i);
+    if (inStr) {
+      if (esc) { out += ch; esc = false; continue; }
+      if (ch === '\\') { out += ch; esc = true; continue; }
+      if (ch === '"') { out += ch; inStr = false; continue; }
+      if (code < 0x20) {
+        out += (ch === '\n') ? '\\n' : (ch === '\r') ? '\\r' : (ch === '\t') ? '\\t'
+          : '\\u' + ('000' + code.toString(16)).slice(-4);
+        continue;
+      }
+      out += ch; continue;
+    }
+    if (ch === '"') inStr = true;
+    out += ch;
+  }
+  return out;
+}
+
+/* 手动导入：粘贴 py_kbcx_ew 的响应原文（整段粘进来即可，前后有杂字也能认） */
 function doImportJson() {
   var err = $('importError');
   err.textContent = '';
-  var txt = $('importJson').value.trim();
-  if (!txt) { err.textContent = '请先粘贴 JSON'; return; }
+  var txt = $('importJson').value;
+  if (!String(txt || '').trim()) { err.textContent = '请先粘贴响应文本'; return; }
+  var json = extractJsonObject(txt);
+  if (!json) { err.textContent = '没找到 JSON：响应里应包含 {"rows":[...]}'; return; }
   try {
-    handleCapture({ body: txt });
+    handleCapture({ body: sanitizeJsonText(json) });
     $('importJson').value = '';
     showToast('课表已导入 ✓');
   } catch (e) {
@@ -796,7 +827,7 @@ async function doRefresh(manual) {
     return;
   }
   if (KcbWebview) { openWebviewSync(); return; }
-  if (manual) showToast('自动同步需要安装 App，或用「手动导入课表数据」');
+  if (manual) showToast('自动同步需要安装 App，或用「粘贴响应文本」');
 }
 
 function cacheSave() {
@@ -989,7 +1020,6 @@ function renderGrid() {
     var t = (settings.slotTimes && settings.slotTimes[s.jcid]) || ['', ''];
     h += '<td class="slot"><b>' + (i + 1) + '</b><span>' + t[0] + '</span><span>' + t[1] + '</span></td>';
     for (var d2 = 1; d2 <= days; d2++) {
-      var onCol = isCurWeek && (d2 - 1) === todayIdx;
       var st = starts[d2] && starts[d2][i];
       if (st) {
         if (st.list.length === 1) {
@@ -1019,7 +1049,8 @@ function renderGrid() {
           h += '<td class="cell multi" rowspan="' + st.span + '">' + inner + '</td>';
         }
       } else if (!covered[d2][i]) {
-        h += '<td class="empty' + (onCol ? ' today-col' : '') + '"></td>';
+        /* 空格子保持素净：不给「今天」整列刷底色，否则看起来像一排没字的灰卡片 */
+        h += '<td class="empty"></td>';
       }
     }
     h += '</tr>';
