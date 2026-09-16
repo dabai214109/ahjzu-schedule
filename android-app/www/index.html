@@ -11,6 +11,7 @@
   --bg: #F5F6FA;
   --surface: #FFFFFF;
   --line: #ECEEF2;
+  --grid-line: #E4E8F0;   /* 课表行分隔细线（比 --line 稍深，压在 #F5F6FA 底上看得清） */
   --text: #1F2329;
   --dim: #8A9099;
   --accent: #3B82F6;
@@ -124,6 +125,13 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 @keyframes wkInL { from { opacity: .35; transform: translateX(26px); } }
 @keyframes wkInR { from { opacity: .35; transform: translateX(-26px); } }
 table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-layout: fixed; }
+/* 行分隔细线：画在整行底部（列间空隙也连着，所以是一条通线，不会断成虚线）。
+   卡片是不透明的、盖在行背景之上，所以卡片处的线自然被卡片挡住：
+   空课位看得见线，有课的位置线从卡片背后穿过 → 一眼能分辨卡片 */
+.kcb thead tr, .kcb tbody tr {
+  background-image: linear-gradient(to bottom, transparent calc(100% - 1px), var(--grid-line) 0);
+  background-repeat: no-repeat;
+}
 .kcb th.axis { width: 38px; }
 .kcb th.day-h { font-size: 11px; color: var(--dim); font-weight: 500; padding: 4px 0 5px; text-align: center; }
 .day-h .dw { display: block; font-weight: 600; }
@@ -133,8 +141,11 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
 .slot b { display: block; font-size: 10px; color: #5A6272; font-weight: 600; }
 .slot span { display: block; font-size: 8px; line-height: 1.35; }
 .kcb td.empty { height: 66px; }
-/* 卡片：文字不做任何截断，内容多就让卡片自己长高（最后一行不会被切一半）；
-   字号按卡片高低自动放大，卡片越高字越大 */
+/* 兜底：空格子自带底线，与上面那条通线同位置重叠（不会变成两倍粗）；
+   万一某些 WebView 不画 tr 背景，线也不会整个消失 */
+.kcb td.slot, .kcb td.empty, .kcb tr.break td { border-bottom: 1px solid var(--grid-line); }
+/* 卡片：高度由它覆盖的节数决定（66px/节），课程名过长会截断（见下面 .cell .nm），
+   卡片不会被长课程名撑高；字号按卡片高低自动放大，卡片越高字越大 */
 .kcb td.cell {
   height: 66px; border-radius: 9px; padding: 4px 3px 3px;
   vertical-align: top; cursor: pointer; text-align: left;
@@ -142,13 +153,19 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
 }
 .cell:active { filter: brightness(.94); }
 .cell .cin { display: flex; flex-direction: column; justify-content: flex-start; }
+/* 课程名：在算好的可用高度内截断，超出显示省略号（行数/高度由内联 style 按节数给） */
 .cell .nm {
   font-size: 10px; font-weight: 600; line-height: 1.25;
-  word-break: break-all; white-space: normal; flex: 0 0 auto;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3; max-height: 38px;
+  overflow: hidden; word-break: break-all; white-space: normal;
+  flex: 0 0 auto;
 }
+/* 教师[地点]：一个字都不省 —— 不截断、不压缩、不设高度上限 */
 .cell .rm {
   font-size: 9px; line-height: 1.2; opacity: .92; margin-top: 2px;
-  word-break: break-all; white-space: normal; flex: 0 0 auto;
+  word-break: break-all; white-space: normal;
+  flex: 0 0 auto; max-height: none; overflow: visible;
 }
 .cell.dim { opacity: .38; }
 /* 同格多门课：格内堆叠小卡片 */
@@ -162,10 +179,13 @@ td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
 .cell.multi .mcard .cin { display: flex; flex-direction: column; justify-content: flex-start; }
 .cell.multi .mcard .nm {
   font-size: 9.5px; line-height: 1.25; word-break: break-all; white-space: normal;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; max-height: 24px; overflow: hidden;
 }
 .cell.multi .mcard .rm {
   font-size: 8.5px; line-height: 1.2; margin-top: 1px; opacity: .92;
   word-break: break-all; white-space: normal;
+  max-height: none; overflow: visible;
 }
 .kcb tr.break td {
   text-align: center; font-size: 9px; color: #B8BECA;
@@ -885,17 +905,80 @@ function cardMeta(c) {
   return c.meta || '';
 }
 
-/* 卡片字号：卡片越高字号越大。
-   文字一律不截断、不设高度上限——内容多就让卡片自己长高，最后一行绝不会被切一半 */
-function cardFontFor(span, coursesInCell) {
-  var cardH = coursesInCell > 1
-    ? Math.floor((span * 66 + 3 * (span - 1) - 6) / coursesInCell) - 6
-    : (span * 66 + 3 * (span - 1) - 7);
-  var font = cardH >= 190 ? 14 : (cardH >= 140 ? 13 : (cardH >= 100 ? 11.5 : 10));
-  return { font: font, metaFont: Math.max(8.5, Math.round(font * 0.85 * 10) / 10) };
+/* 卡片排版（参考小爱课程表）：
+   卡片高度就是它覆盖的节数，不因为课程名长而把整行撑高；
+   课程名按剩余空间截断（带省略号），但最后那行「教师[地点]」必须完整显示。
+   算法：先按列宽估算地址行要占几行并把它整块扣掉，剩下的高度才给课程名。 */
+var CARD_ROW_H = 66, CARD_GAP = 3, CARD_PAD = 7, NAME_LH = 1.25, META_LH = 1.2;
+
+/* 电脑预览锁宽：地址栏加 ?w=390 就把整页锁成手机宽度（居中显示），
+   不用开发者工具也能看到手机上真实的列宽和截断效果 */
+function detectPreviewWidth() {
+  try {
+    if (typeof location === 'undefined' || !location.search) return 0;
+    var w = parseInt(new URLSearchParams(location.search).get('w'), 10);
+    return (w >= 240 && w <= 600) ? w : 0;
+  } catch (e) { return 0; }
 }
-function nameStyle(fit) { return 'font-size:' + fit.font + 'px'; }
-function metaStyle(fit) { return 'font-size:' + fit.metaFont + 'px'; }
+/* 排版用的视口宽度：锁宽时用锁定值，否则用真实窗口宽度 */
+function viewWidth() {
+  var w = detectPreviewWidth();
+  if (w) return w;
+  return (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 390;
+}
+function applyPreviewWidth() {
+  var w = detectPreviewWidth();
+  if (!w) return;
+  try {
+    var root = document.documentElement;
+    if (root.style && root.style.setProperty) root.style.setProperty('--pw', w + 'px');
+    if (root.classList) root.classList.add('pw');
+    if (!document.head) return;
+    var st = document.createElement('style');
+    st.textContent =
+      'html.pw{background:#E7EAF0}' +
+      /* body 必须跟着内容长高：app 的 CSS 是 html,body{height:100%}，
+         若固定一屏高，超出部分会露出 html 的灰底（和细线 #E4E8F0 几乎同色），
+         看起来就是最下面几节没底色、细线也没了 */
+      'html.pw body{width:var(--pw);margin:0 auto;height:auto;min-height:100%;' +
+        'box-shadow:0 0 0 1px #DCE1E9,0 12px 32px rgba(31,35,41,.10)}' +
+      'html.pw .tabbar{left:50%;right:auto;width:var(--pw);transform:translateX(-50%)}' +
+      'html.pw .sheet-card{max-width:var(--pw)}';
+    document.head.appendChild(st);
+  } catch (e) {}
+}
+
+function colChars(fontPx, days) {
+  var vw = viewWidth();
+  var colW = (vw - 38 - 16 - (Math.max(days, 1) - 1) * CARD_GAP) / Math.max(days, 1);
+  return Math.max(2, Math.floor(colW / fontPx));
+}
+
+/* 返回名称字号/行数（内联到卡片上）与预计总高 */
+function cardLayout(span, coursesInCell, metaText, days) {
+  var cardH = coursesInCell > 1
+    ? Math.floor((span * CARD_ROW_H + CARD_GAP * (span - 1) - 6) / coursesInCell) - 6
+    : (span * CARD_ROW_H + CARD_GAP * (span - 1) - CARD_PAD);
+  var nameFont = cardH >= 190 ? 14 : (cardH >= 140 ? 13 : (cardH >= 100 ? 11.5 : 10));
+  var metaFont = Math.max(8.5, Math.round(nameFont * 0.85 * 10) / 10);
+
+  /* 地址行先算：它一个字都不能省，占多少行就扣多少高度 */
+  var metaLen = String(metaText || '').length;
+  var metaLines = metaLen ? Math.max(1, Math.ceil(metaLen / colChars(metaFont, days))) : 0;
+  var metaH = metaLines * metaFont * META_LH + (metaLines ? 2 : 0);
+
+  var nameLines = Math.max(1, Math.floor((cardH - metaH) / (nameFont * NAME_LH)));
+  var nameMaxH = Math.round(nameLines * nameFont * NAME_LH);
+  return {
+    nameFont: nameFont, metaFont: metaFont, metaLines: metaLines,
+    nameLines: nameLines, nameMaxH: nameMaxH, metaH: Math.round(metaH)
+  };
+}
+/* 名称内联样式：行数上限 + 整行高度的 max-height（整倍数，不会切出半行） */
+function nameStyle(f) {
+  return 'font-size:' + f.nameFont + 'px;max-height:' + f.nameMaxH + 'px;-webkit-line-clamp:' + f.nameLines;
+}
+function metaStyle(f) { return 'font-size:' + f.metaFont + 'px'; }
 
 function slotList() {
   if (data && data.slots && data.slots.length) {
@@ -1026,20 +1109,20 @@ function renderGrid() {
           var cc = st.list[0], dim = !inWeek(cc, viewWeek);
           var idx = cardRefs.push(Object.assign({}, cc, { span: st.span, slotIdx: i })) - 1;
           var meta = cardMeta(cc);
-          var fit1 = cardFontFor(st.span, 1);
+          var fit1 = cardLayout(st.span, 1, meta, days);
           h += '<td class="cell ' + colorClass(cc.name) + (dim ? ' dim' : '') + '" rowspan="' + st.span +
                '" onclick="showDetail(' + idx + ')"><div class="cin">' +
                '<div class="nm" style="' + nameStyle(fit1) + '">' + esc(cc.name) + '</div>' +
                (meta ? '<div class="rm" style="' + metaStyle(fit1) + '">' + esc(meta) + '</div>' : '') +
                '</div></td>';
         } else {
-          /* 同格多门课（不同周次段叠放）：格内堆叠小卡片 */
+          /* 同格多门课（不同周次段叠放）：格内堆叠小卡片，每张各自算可用高度 */
           var inner = '';
-          var fit2 = cardFontFor(st.span, st.list.length);
           st.list.forEach(function (mc2) {
             var dim2 = !inWeek(mc2, viewWeek);
             var idx2 = cardRefs.push(Object.assign({}, mc2, { span: st.span, slotIdx: i })) - 1;
             var meta2 = cardMeta(mc2);
+            var fit2 = cardLayout(st.span, st.list.length, meta2, days);
             inner += '<div class="mcard ' + colorClass(mc2.name) + (dim2 ? ' dim' : '') +
                      '" onclick="showDetail(' + idx2 + ')"><div class="cin">' +
                      '<div class="nm" style="' + nameStyle(fit2) + '">' + esc(mc2.name) + '</div>' +
@@ -1259,12 +1342,21 @@ function bindStatic() {
     if (e.key === 'ArrowLeft') swipeWeek(-1);
     else if (e.key === 'ArrowRight') swipeWeek(1);
   });
+
+  /* 窗口尺寸变化（电脑预览切手机视图、手机旋转）后重排卡片：
+     名称行数是按列宽算的，尺寸变了必须重算一次 */
+  var rsT = null;
+  window.addEventListener('resize', function () {
+    if (rsT) clearTimeout(rsT);
+    rsT = setTimeout(function () { rsT = null; if (data) renderAll(); }, 120);
+  });
 }
 
 /* ═══════════════ 启动 ═══════════════ */
 (function init() {
   initNative();
   bindStatic();
+  applyPreviewWidth();          /* ?w=390 电脑预览锁成手机宽度 */
   var q = new URLSearchParams(location.search);
   if (q.get('demo') === '1') { enterDemo(); return; }
 
