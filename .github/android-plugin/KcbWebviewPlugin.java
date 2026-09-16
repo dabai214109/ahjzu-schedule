@@ -1,6 +1,7 @@
 package com.dabai.kcb;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -60,15 +61,15 @@ public class KcbWebviewPlugin extends Plugin {
             call.reject("missing url");
             return;
         }
-        final Context ctx = getActivity();
-        if (ctx == null) {
+        final Activity act = getActivity();
+        if (act == null) {
             call.reject("no activity");
             return;
         }
-        ctx.runOnUiThread(new Runnable() {
+        act.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                showWebview(ctx, url);
+                showWebview(act, url);
             }
         });
         call.resolve();
@@ -76,9 +77,9 @@ public class KcbWebviewPlugin extends Plugin {
 
     @PluginMethod
     public void close(PluginCall call) {
-        final Context ctx = getActivity();
-        if (ctx != null) {
-            ctx.runOnUiThread(new Runnable() {
+        final Activity act = getActivity();
+        if (act != null) {
+            act.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     closeDialog();
@@ -217,9 +218,9 @@ public class KcbWebviewPlugin extends Plugin {
         @JavascriptInterface
         public void onScheduleResponse(final String url, final String body) {
             final boolean hasRows = body != null && body.indexOf("\"rows\"") >= 0;
-            final Context ctx = getActivity();
-            if (ctx != null) {
-                ctx.runOnUiThread(new Runnable() {
+            final Activity act = getActivity();
+            if (act != null) {
+                act.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         if (statusText != null) {
