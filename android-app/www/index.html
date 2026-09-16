@@ -332,12 +332,12 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       <div class="group-title">数据同步</div>
       <div class="srow">
         <div class="srow-main">
-          <div class="srow-label">从研究生系统同步</div>
-          <div class="srow-desc">打开学校网页登录（学号/密码/验证码都在学校页面输入），进入「培养管理 → 学生课表查询」后课表自动捕获导入</div>
+          <div class="srow-label">登录信息门户 → 进入研究生系统</div>
+          <div class="srow-desc">打开学校信息门户登录页，学号/密码/验证码都在学校页面输入；登录后点「研究生系统」→「培养管理 → 学生课表查询」，课表自动捕获导入。窗口顶部会显示当前域名。</div>
         </div>
       </div>
-      <div style="padding: 10px 16px 12px;">
-        <button class="btn-primary" onclick="openWebviewSync()">打开研究生系统同步</button>
+      <div style="padding: 10px 16px 6px;">
+        <button class="btn-primary" onclick="openWebviewSync()">打开信息门户同步</button>
       </div>
       <div class="srow" style="border-top: 1px solid #F3F4F8;">
         <div class="srow-main">
@@ -345,6 +345,9 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
           <div class="srow-desc" id="setFetchedAt">—</div>
         </div>
         <button class="mini-btn" onclick="openWebviewSync()">立即刷新</button>
+      </div>
+      <div class="srow" style="border-top: 1px solid #F3F4F8;">
+        <button class="link-btn" onclick="openWebviewSync('grad')">已登录过？直接进研究生系统 →</button>
       </div>
     </div>
 
@@ -445,10 +448,14 @@ var CACHE_KEY = 'kcb_cache_v1';
 
 /* 安徽建筑大学系统地址 */
 var CFG = {
+  /* 信息门户登录页（浏览器实测可用的入口）：登录后进门户，再点「研究生系统」 */
+  PORTAL_LOGIN: 'https://sso.webvpn.ahjzu.edu.cn/sso/login?service=https://portal.ahjzu.edu.cn/user/simpleSSOLogin',
+  PORTAL_BASE: 'https://portal.ahjzu.edu.cn',
+  /* WebVPN 里的研究生系统（已登录过、Cookie 还在时的快捷入口） */
   WEBVPN_BASE: 'https://219-231-15-133.webvpn.ahjzu.edu.cn',
   GRADUATE_APP: '/gmis5',
-  ENTRY_PATH: '/student/pygl/xskbcx',        /* 学生课表查询页（WebView 打开的入口） */
-  COURSE_API_PATH: '/student/pygl/py_kbcx_ew' /* 课表数据接口（原生插件按此名拦截响应） */
+  ENTRY_PATH: '/student/pygl/xskbcx',         /* 学生课表查询页 */
+  COURSE_API_PATH: '/student/pygl/py_kbcx_ew' /* 课表数据接口（插件按此名拦截响应） */
 };
 
 /* 安建大研究生系统节次（jcid 来自课表接口 rows，时间为近似值，可在设置中修改） */
@@ -527,13 +534,18 @@ function initNative() {
   } catch (e) { KcbWebview = null; }
 }
 
-/* 打开学校研究生系统页面（WebVPN 入口 = 学生课表查询页；未登录会先跳到登录页） */
-function openWebviewSync() {
+/* 打开学校网页同步课表：
+   which='portal'（默认）→ 信息门户登录页，登录后手动点「研究生系统 → 培养管理 → 学生课表查询」
+   which='grad'          → 直接进研究生系统（Cookie 还在时用，省一步） */
+function openWebviewSync(which) {
   if (!KcbWebview) {
     showToast('自动同步需要安装 App；也可用下方「手动导入课表数据」');
     return;
   }
-  KcbWebview.open({ url: CFG.WEBVPN_BASE + CFG.GRADUATE_APP + CFG.ENTRY_PATH }).catch(function (e) {
+  var url = (which === 'grad')
+    ? CFG.WEBVPN_BASE + CFG.GRADUATE_APP + CFG.ENTRY_PATH
+    : CFG.PORTAL_LOGIN;
+  KcbWebview.open({ url: url }).catch(function (e) {
     showToast('打开失败：' + (e.message || e));
   });
 }
@@ -786,8 +798,8 @@ function renderGrid() {
     wrap.innerHTML = '<div class="empty-state">' +
       '<div class="empty-logo">课</div>' +
       '<div style="font-size:15px;font-weight:600;">还没有课表数据</div>' +
-      '<div style="font-size:12px;color:var(--dim);line-height:1.8;">打开研究生系统网页登录后<br>进入「培养管理 → 学生课表查询」<br>课表会自动同步进来</div>' +
-      '<button class="btn-primary" onclick="openWebviewSync()">登录并同步课表</button>' +
+      '<div style="font-size:12px;color:var(--dim);line-height:1.8;">打开信息门户登录后<br>点「研究生系统 → 培养管理 → 学生课表查询」<br>课表会自动同步进来</div>' +
+      '<button class="btn-primary" onclick="openWebviewSync()">登录信息门户并同步课表</button>' +
       '<button class="empty-link" onclick="enterDemo()">先看看示例课表 →</button>' +
       '</div>';
     return;

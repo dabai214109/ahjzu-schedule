@@ -44,4 +44,10 @@ echo "==> 注册原生 WebView 插件（课表响应捕获）"
 cp .github/android-plugin/KcbWebviewPlugin.java "$APP/app/src/main/java/com/dabai/kcb/"
 cp .github/android-plugin/MainActivity.java     "$APP/app/src/main/java/com/dabai/kcb/MainActivity.java"
 
+echo "==> 追加 androidx.webkit（文档开始注入 JS，用于拦截课表接口响应）"
+if ! grep -q "androidx.webkit:webkit" "$APP/app/build.gradle"; then
+  sed -i 's|^dependencies {|dependencies {\n    implementation "androidx.webkit:webkit:1.11.0"|' "$APP/app/build.gradle"
+fi
+grep -n "androidx.webkit" "$APP/app/build.gradle" || true
+
 echo "==> 定制完成"

@@ -6,18 +6,24 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -25,9 +31,12 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import java.util.Collections;
+
 /**
- * 打开学校研究生系统原生网页：登录（含验证码）都在学校页面完成，
- * 注入 JS 拦截 py_kbcx_ew 的 XHR/fetch 响应，回传给前端解析映射到课表。
+ * 打开学校信息门户原生网页：登录（含验证码）都在学校页面完成，
+ * 用户自己点进「研究生系统 → 培养管理 → 学生课表查询」；
+ * 插件在此之前注入 JS 拦截 py_kbcx_ew 的 XHR/fetch 响应，回传前端解析映射到课表。
  */
 @CapacitorPlugin(name = "KcbWebview")
 public class KcbWebviewPlugin extends Plugin {
@@ -36,22 +45,36 @@ public class KcbWebviewPlugin extends Plugin {
     private WebView webView = null;
     private TextView statusText = null;
     private boolean captured = false;
+    private boolean injectedThisLoad = false;
 
-    /** 注入到每个页面的响应拦截脚本（XHR + fetch 双覆盖） */
+    /**
+     * 注入脚本：
+     *  1) hookWin() 包装 XHR / fetch，命中 py_kbcx_ew 时把响应回传原生；
+     *  2) 同时 hook 同源 iframe（学校系统常用 frameset/iframe 布局）；
+     *  3) 把 target=_blank 与 window.open 改成本窗口跳转，避免点了没反应。
+     */
     private static final String HOOK_JS =
-        "(function(){try{if(window.__kcbHooked)return;window.__kcbHooked=1;" +
-        "function report(u,b){try{window.KcbNative.onScheduleResponse(String(u),String(b));}catch(e){}}" +
-        "var oo=XMLHttpRequest.prototype.open,os=XMLHttpRequest.prototype.send;" +
-        "XMLHttpRequest.prototype.open=function(m,u){this.__kcbU=u;return oo.apply(this,arguments);};" +
-        "XMLHttpRequest.prototype.send=function(){var x=this;" +
-        "x.addEventListener('load',function(){" +
-        "try{if(x.__kcbU&&String(x.__kcbU).indexOf('py_kbcx_ew')>=0)report(x.__kcbU,x.responseText);}catch(e){}});" +
-        "return os.apply(this,arguments);};" +
-        "if(window.fetch){var of=window.fetch;window.fetch=function(i,s){" +
-        "var u=(typeof i==='string')?i:((i&&i.url)||'');" +
-        "return of.apply(this,arguments).then(function(r){" +
-        "try{if(u&&String(u).indexOf('py_kbcx_ew')>=0)r.clone().text().then(function(t){report(u,t);});}catch(e){}" +
-        "return r;});};}" +
+        "(function(){try{" +
+        "function hookWin(w){if(!w)return;try{if(w.__kcbHooked)return;w.__kcbHooked=1;}catch(e){return;}" +
+        "function report(u,b){try{var n=null;try{n=w.KcbNative;}catch(e){}" +
+        "if(!n){try{n=window.KcbNative;}catch(e){}}n.onScheduleResponse(String(u),String(b));}catch(e){}}" +
+        "try{var X=w.XMLHttpRequest;if(X&&X.prototype){var oo=X.prototype.open,os=X.prototype.send;" +
+        "X.prototype.open=function(m,u){try{this.__kcbU=u;}catch(e){}return oo.apply(this,arguments);};" +
+        "X.prototype.send=function(){var x=this;try{x.addEventListener('load',function(){" +
+        "try{if(x.__kcbU&&String(x.__kcbU).indexOf('py_kbcx_ew')>=0)report(x.__kcbU,x.responseText);}catch(e){}});}catch(e){}" +
+        "return os.apply(this,arguments);};}}catch(e){}" +
+        "try{if(w.fetch){var of=w.fetch;w.fetch=function(i,s){var u=(typeof i==='string')?i:((i&&i.url)||'');" +
+        "return of.apply(this,arguments).then(function(r){try{" +
+        "if(u&&String(u).indexOf('py_kbcx_ew')>=0)r.clone().text().then(function(t){report(u,t);});" +
+        "}catch(e){}return r;});};}}catch(e){}" +
+        "}" +
+        "hookWin(window);" +
+        "try{window.open=function(u){try{if(u)window.location.href=u;}catch(e){}return null;};}catch(e){}" +
+        "try{document.addEventListener('click',function(e){var t=e.target;" +
+        "while(t&&t.tagName!=='A'){t=t.parentElement;}" +
+        "if(t&&t.target&&t.target!=='_self'){t.target='_self';}},true);}catch(e){}" +
+        "try{var fs=document.querySelectorAll('iframe');" +
+        "for(var i=0;i<fs.length;i++){try{hookWin(fs[i].contentWindow);}catch(e){}}}catch(e){}" +
         "}catch(e){}})();";
 
     @PluginMethod
@@ -101,17 +124,19 @@ public class KcbWebviewPlugin extends Plugin {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.WHITE);
 
-        /* 顶部状态条：提示 + 关闭按钮 */
+        /* 顶部状态条：当前域名 + 提示 + 关闭按钮 */
         LinearLayout bar = new LinearLayout(ctx);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(dp(ctx, 14), dp(ctx, 10), dp(ctx, 6), dp(ctx, 10));
+        bar.setPadding(dp(ctx, 12), dp(ctx, 9), dp(ctx, 6), dp(ctx, 9));
         bar.setBackgroundColor(Color.parseColor("#3B82F6"));
 
         statusText = new TextView(ctx);
         statusText.setText("加载中…");
-        statusText.setTextColor(0xCCFFFFFF);
-        statusText.setTextSize(13);
+        statusText.setTextColor(0xE6FFFFFF);
+        statusText.setTextSize(12);
+        statusText.setSingleLine(true);
+        statusText.setEllipsize(TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         bar.addView(statusText, sp);
 
@@ -135,11 +160,13 @@ public class KcbWebviewPlugin extends Plugin {
         WebSettings ws = webView.getSettings();
         ws.setJavaScriptEnabled(true);
         ws.setDomStorageEnabled(true);
+        ws.setDatabaseEnabled(true);
         ws.setUseWideViewPort(true);
         ws.setLoadWithOverviewMode(true);
         ws.setSupportZoom(true);
         ws.setBuiltInZoomControls(true);
         ws.setDisplayZoomControls(false);
+        ws.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         String ua = ws.getUserAgentString();
         if (ua != null) ws.setUserAgentString(ua.replace("; wv", ""));
 
@@ -148,10 +175,20 @@ public class KcbWebviewPlugin extends Plugin {
         if (Build.VERSION.SDK_INT >= 21) cm.setAcceptThirdPartyCookies(webView, true);
 
         webView.addJavascriptInterface(new JsBridge(), "KcbNative");
+
+        /* 最强注入：文档开始执行前（覆盖所有 frame/origin），失败则退回下面几种时机 */
+        try {
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                WebViewCompat.addDocumentStartJavaScript(webView, HOOK_JS, Collections.singleton("*"));
+            }
+        } catch (Throwable ignored) {
+        }
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView v, String u, android.graphics.Bitmap favicon) {
-                if (statusText != null && !captured) statusText.setText("加载中…");
+                injectedThisLoad = false;
+                if (statusText != null && !captured) statusText.setText(hostOf(u) + " · 加载中…");
                 v.evaluateJavascript(HOOK_JS, null);
             }
 
@@ -159,10 +196,22 @@ public class KcbWebviewPlugin extends Plugin {
             public void onPageFinished(WebView v, String u) {
                 v.evaluateJavascript(HOOK_JS, null);
                 if (statusText != null && !captured) {
-                    statusText.setText("登录后进入「学生课表查询」→ 自动捕获");
+                    statusText.setText(hostOf(u) + " · 登录后进「培养管理 → 学生课表查询」");
                 }
             }
         });
+
+        /* 兜底注入：页面加载到 10% 时 JS 上下文已就绪，早于多数 ready 回调 */
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView v, int progress) {
+                if (progress >= 10 && !injectedThisLoad) {
+                    injectedThisLoad = true;
+                    v.evaluateJavascript(HOOK_JS, null);
+                }
+            }
+        });
+
         root.addView(webView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
@@ -209,6 +258,15 @@ public class KcbWebviewPlugin extends Plugin {
         dialog = null;
     }
 
+    private String hostOf(String u) {
+        try {
+            String h = Uri.parse(u).getHost();
+            return h != null ? h : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private int dp(Context c, int v) {
         return Math.round(v * c.getResources().getDisplayMetrics().density);
     }
@@ -225,7 +283,7 @@ public class KcbWebviewPlugin extends Plugin {
                     public void run() {
                         if (statusText != null) {
                             statusText.setText(hasRows ? "✓ 已捕获课表，正在同步…"
-                                    : "捕获到响应但无课表数据，请确认已进入「学生课表查询」");
+                                    : "捕获到响应但无课表数据，请进「学生课表查询」");
                         }
                         if (hasRows && !captured) {
                             captured = true;
