@@ -132,21 +132,24 @@ table.kcb { width: 100%; border-collapse: separate; border-spacing: 3px; table-l
 .kcb td.slot { text-align: center; vertical-align: top; padding-top: 3px; color: var(--dim); }
 .slot b { display: block; font-size: 10px; color: #5A6272; font-weight: 600; }
 .slot span { display: block; font-size: 8px; line-height: 1.35; }
-.kcb td.empty { height: 50px; }
+.kcb td.empty { height: 58px; }
 .kcb td.empty.today-col { background: rgba(59, 130, 246, .055); border-radius: 9px; }
 .kcb td.cell {
-  height: 50px; border-radius: 9px; padding: 4px 3px 3px;
+  height: 58px; border-radius: 9px; padding: 4px 3px 3px;
   vertical-align: top; overflow: hidden; cursor: pointer; text-align: left;
 }
 .cell:active { filter: brightness(.94); }
+/* 卡片内部：名称占剩余空间，教师/教室行固定保留位置，不会被裁掉 */
+.cell .cin { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .cell .nm {
-  font-size: 9.5px; font-weight: 600; line-height: 1.25;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-  overflow: hidden; word-break: break-all;
+  font-size: 10px; font-weight: 600; line-height: 1.2;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-all; flex: 0 1 auto;
 }
 .cell .rm {
-  font-size: 8.5px; opacity: .72; margin-top: 1px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 9px; line-height: 1.15; opacity: .8; margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-all; flex: 0 0 auto;
 }
 .cell.dim { opacity: .38; }
 /* 同格多门课：格内堆叠小卡片 */
@@ -157,8 +160,9 @@ td.cell.multi { background: rgba(31, 35, 41, .035); padding: 2px 1px; }
 }
 .cell.multi .mcard:active { filter: brightness(.94); }
 .cell.multi .mcard.dim { opacity: .38; }
-.cell.multi .mcard .nm { font-size: 9px; -webkit-line-clamp: 2; }
-.cell.multi .mcard .rm { font-size: 8px; }
+.cell.multi .mcard .cin { display: flex; flex-direction: column; }
+.cell.multi .mcard .nm { font-size: 9.5px; -webkit-line-clamp: 2; }
+.cell.multi .mcard .rm { font-size: 8.5px; -webkit-line-clamp: 2; }
 .kcb tr.break td {
   text-align: center; font-size: 9px; color: #B8BECA;
   padding: 1px 0 0; letter-spacing: 4px;
@@ -753,6 +757,14 @@ function switchTab(tab) {
 }
 
 /* ═══════════════ 渲染 ═══════════════ */
+/* 卡片副行：教师 + 教室（学校页面里跟在课程名后面的信息） */
+function cardMeta(c) {
+  var parts = [];
+  if (c.teacher) parts.push(c.teacher);
+  if (c.room) parts.push(c.room);
+  return parts.join('·');
+}
+
 function slotList() {
   if (data && data.slots && data.slots.length) {
     var known = {};
@@ -882,18 +894,20 @@ function renderGrid() {
         if (st.list.length === 1) {
           var cc = st.list[0], dim = !inWeek(cc, viewWeek);
           var idx = cardRefs.push(Object.assign({}, cc, { span: st.span, slotIdx: i })) - 1;
+          var meta = cardMeta(cc);
           h += '<td class="cell ' + colorClass(cc.name) + (dim ? ' dim' : '') + '" rowspan="' + st.span +
-               '" onclick="showDetail(' + idx + ')"><div class="nm">' + esc(cc.name) + '</div>' +
-               (cc.room ? '<div class="rm">' + esc(cc.room) + '</div>' : '') + '</td>';
+               '" onclick="showDetail(' + idx + ')"><div class="cin"><div class="nm">' + esc(cc.name) + '</div>' +
+               (meta ? '<div class="rm">' + esc(meta) + '</div>' : '') + '</div></td>';
         } else {
           /* 同格多门课（不同周次段叠放）：格内堆叠小卡片 */
           var inner = '';
           st.list.forEach(function (mc2) {
             var dim2 = !inWeek(mc2, viewWeek);
             var idx2 = cardRefs.push(Object.assign({}, mc2, { span: st.span, slotIdx: i })) - 1;
+            var meta2 = cardMeta(mc2);
             inner += '<div class="mcard ' + colorClass(mc2.name) + (dim2 ? ' dim' : '') +
-                     '" onclick="showDetail(' + idx2 + ')"><div class="nm">' + esc(mc2.name) + '</div>' +
-                     (mc2.room ? '<div class="rm">' + esc(mc2.room) + '</div>' : '') + '</div>';
+                     '" onclick="showDetail(' + idx2 + ')"><div class="cin"><div class="nm">' + esc(mc2.name) + '</div>' +
+                     (meta2 ? '<div class="rm">' + esc(meta2) + '</div>' : '') + '</div></div>';
           });
           h += '<td class="cell multi" rowspan="' + st.span + '">' + inner + '</td>';
         }
