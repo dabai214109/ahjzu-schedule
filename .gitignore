@@ -27,6 +27,8 @@ Screenshot*
 /*.webp
 # 本机自己的待办清单（自己看的，不进仓库）
 /代办内容.txt
+# 早期的工作移交报告：内容已过时（还写着仓库是 Private），不属于 app；本地文件保留
+/工作移交报告.md
 
 # Node / Capacitor / Android（本地不编译，全部在 GitHub Actions 云端完成）
 node_modules/
