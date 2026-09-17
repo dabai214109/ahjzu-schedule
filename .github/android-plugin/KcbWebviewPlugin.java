@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -96,6 +98,60 @@ public class KcbWebviewPlugin extends Plugin {
             }
         });
         call.resolve();
+    }
+
+    /**
+     * 用系统浏览器打开外部网页。
+     * 插件自带的 open() 是应用内弹窗（用于学校登录页），不适合跳外部站点；
+     * 「设置 → 页脚 GitHub 项目」这类外链走这个方法，跳系统浏览器。
+     */
+    @PluginMethod
+    public void openExternal(final PluginCall call) {
+        final String url = call.getString("url", "");
+        if (url == null || url.isEmpty()) {
+            call.reject("missing url");
+            return;
+        }
+        final Activity act = getActivity();
+        if (act == null) {
+            call.reject("no activity");
+            return;
+        }
+        act.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    act.startActivity(i);
+                    call.resolve();
+                } catch (Exception e) {
+                    call.reject("cannot open url: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    /**
+     * 把已安装 APK 的真实版本号告诉前端。
+     * 设置页脚显示的版本号走这里，而不是在网页里写死 ——
+     * CI 每次构建都会把 versionName 改成 1.1.${GITHUB_RUN_NUMBER}，这样界面永远与实际一致。
+     */
+    @PluginMethod
+    public void getVersion(PluginCall call) {
+        try {
+            Activity act = getActivity();
+            if (act == null) {
+                call.reject("no activity");
+                return;
+            }
+            PackageInfo pi = act.getPackageManager().getPackageInfo(act.getPackageName(), 0);
+            JSObject ret = new JSObject();
+            ret.put("version", pi.versionName == null ? "" : pi.versionName);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("cannot read version: " + e.getMessage());
+        }
     }
 
     @PluginMethod

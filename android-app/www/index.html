@@ -70,7 +70,6 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 }
 .btn-primary:active { opacity: .75; }
 .btn-primary:disabled { opacity: .5; }
-.link-btn { width: 100%; padding: 12px; font-size: 13px; color: var(--accent); }
 .mini-btn {
   padding: 8px 12px; background: #F1F3F7; border-radius: 9px;
   font-size: 12px; color: #3C4353; flex-shrink: 0;
@@ -303,6 +302,13 @@ td.cell.multi { background-color: rgba(31, 35, 41, .035); background-clip: conte
 .week-grid button.now { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--accent); font-weight: 700; }
 .week-grid button.cur.now { box-shadow: none; }
 
+/* 使用必读弹窗（首次使用自动弹出；也可在「设置 → 帮助」里再看一次） */
+.mr-body { font-size: 13.5px; line-height: 1.8; color: #3C4353; }
+.mr-body p { margin: 0 0 12px; }
+.mr-body p:last-child { margin-bottom: 0; }
+.mr-body b { color: var(--text); font-weight: 700; }
+.mr-tip { margin-top: 14px; font-size: 11.5px; color: var(--dim); line-height: 1.6; }
+
 /* ─────────── 设置页（Tab 内容页） ─────────── */
 .settings-body { padding: 12px 14px calc(74px + env(safe-area-inset-bottom, 0px)); }
 .group { background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
@@ -344,9 +350,12 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
 .slot-time-row .st-name { flex: 1; font-size: 13px; }
 .slot-time-row input { width: 100px; padding: 7px 8px; border: none; background: #F1F3F7; border-radius: 8px; font-size: 12px; outline: none; }
 .danger-btn { width: 100%; padding: 12px; background: #FFEFF0; color: var(--danger); border-radius: 12px; font-size: 14px; font-weight: 600; }
-.settings-foot { text-align: center; color: #B6BBC4; font-size: 11px; padding: 6px 0 2px; }
+.settings-foot { text-align: center; color: #B6BBC4; font-size: 11px; padding: 6px 0 2px; line-height: 1.9; }
+/* 页脚的 GitHub 项目链接（蓝色，点击用系统浏览器打开） */
+.foot-link { color: var(--accent); font-weight: 600; text-decoration: none; }
+.foot-link:active { opacity: .55; }
 
-/* ─────────── Toast / 下拉刷新 ─────────── */
+/* ─────────── Toast ─────────── */
 #toast {
   position: fixed; left: 50%; top: calc(64px + var(--safe-top));
   transform: translate(-50%, -12px);
@@ -355,13 +364,6 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
   opacity: 0; pointer-events: none; transition: .25s; z-index: 400; max-width: 82vw;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
-#ptr {
-  position: fixed; top: calc(52px + var(--safe-top)); left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px; color: var(--dim);
-  opacity: 0; transition: .2s; z-index: 90;
-}
-#ptr.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -409,6 +411,16 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
   </div>
 </div>
 
+<!-- ═══════════ 使用必读（首次使用自动弹出）═══════════ -->
+<div class="sheet" id="mustReadSheet" onclick="sheetClose(event,'mustReadSheet')">
+  <div class="sheet-card" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">使用必读</div>
+    <div class="mr-body" id="mrBody"></div>
+    <button class="sheet-close-btn" onclick="hideSheet('mustReadSheet')">我知道了</button>
+  </div>
+</div>
+
 <!-- ═══════════ 设置页（Tab 2）═══════════ -->
 <div class="hidden" id="settingsPage">
   <div class="head-sticky">
@@ -434,9 +446,6 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
           <div class="srow-desc" id="setFetchedAt">—</div>
         </div>
         <button class="mini-btn" onclick="openWebviewSync()">立即刷新</button>
-      </div>
-      <div class="srow" style="border-top: 1px solid #F3F4F8;">
-        <button class="link-btn" onclick="openWebviewSync('grad')">已登录过？直接进研究生系统 →</button>
       </div>
     </div>
 
@@ -519,6 +528,17 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
     </details>
 
     <div class="group">
+      <div class="group-title">帮助</div>
+      <div class="srow">
+        <div class="srow-main">
+          <div class="srow-label">使用必读</div>
+          <div class="srow-desc">首次使用会自动弹出；这里可以随时再看</div>
+        </div>
+        <button class="mini-btn" onclick="openMustRead()">查看</button>
+      </div>
+    </div>
+
+    <div class="group">
       <div class="group-title">数据</div>
       <div class="srow">
         <div class="srow-main">
@@ -528,7 +548,10 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
         <button class="danger-btn" style="width:auto; padding:8px 14px; font-size:13px;" onclick="clearData()">清除</button>
       </div>
     </div>
-    <div class="settings-foot">我的课表 · 安徽建筑大学研究生 · Android v1.1</div>
+    <div class="settings-foot">
+      我的课表 · 安徽建筑大学研究生 · <span id="appVer">v1.1.x（本地预览）</span><br>
+      <a class="foot-link" href="javascript:void(0)" onclick="openProject()">github项目ahjzu-schedule</a>
+    </div>
   </div>
 </div>
 
@@ -539,7 +562,6 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
 </div>
 
 <div id="toast"></div>
-<div id="ptr">↓ 下拉刷新</div>
 
 <script>
 'use strict';
@@ -1237,6 +1259,57 @@ function openSheet(id) { $(id).classList.add('open'); }
 function hideSheet(id) { $(id).classList.remove('open'); }
 function sheetClose(e, id) { if (e.target.id === id) hideSheet(id); }
 
+/* ═══════════════ 使用必读（内容取自项目文档《使用必读.docx》） ═══════════════ */
+var MUST_READ_KEY = 'kcb_mustread_v1';
+var MUST_READ_PARAS = [
+  '本 app 仅适用于安建大研究生课表，模拟网页登录信息门户，<b>不收集和上传任何个人信息</b>。',
+  '点击「打开信息门户同步」，打开学校信息门户登录页，学号 / 密码 / 验证码都在学校页面输入；登录后点「研究生系统」→「培养管理」→「学生课表查询」，自动捕获 Response 并映射至课表。',
+  '有问题请移步 GitHub 项目 ahjzu-schedule 提交 PR。'
+];
+function openMustRead() {
+  $('mrBody').innerHTML = MUST_READ_PARAS.map(function (t) { return '<p>' + t + '</p>'; }).join('') +
+    '<div class="mr-tip">此说明可在「设置 → 帮助 → 使用必读」再次查看。</div>';
+  openSheet('mustReadSheet');
+}
+/* isDemo=true（电脑预览 ?demo=1）时每次都弹、且不写标记，方便反复查看效果；
+   正常使用时只在首次启动弹一次，之后靠设置里的入口打开 */
+function mustReadOnFirstLaunch(isDemo) {
+  if (!isDemo) {
+    try { if (localStorage.getItem(MUST_READ_KEY)) return; } catch (e) { return; }
+  }
+  openMustRead();
+  if (!isDemo) { try { localStorage.setItem(MUST_READ_KEY, '1'); } catch (e) {} }
+}
+
+/* ═══════════════ 打开 GitHub 项目页（设置页脚） ═══════════════ */
+var PROJECT_URL = 'https://github.com/dabai214109/ahjzu-schedule';
+function openProject() {
+  /* 手机上交给系统浏览器（原生 Intent）；没装这个原生方法或调用失败时，
+     退回到应用内网页窗口（有 ✕ 可关，不会把界面困住）；电脑预览则开新标签 */
+  if (KcbWebview && typeof KcbWebview.openExternal === 'function') {
+    KcbWebview.openExternal({ url: PROJECT_URL }).catch(function () { window.open(PROJECT_URL, '_blank'); });
+    return;
+  }
+  if (KcbWebview && typeof KcbWebview.open === 'function') {
+    KcbWebview.open({ url: PROJECT_URL }).catch(function () { window.open(PROJECT_URL, '_blank'); });
+    return;
+  }
+  window.open(PROJECT_URL, '_blank');
+}
+
+/* ═══════════════ 版本号（设置页脚） ═══════════════
+   版本号不写死在网页里：向原生插件要已安装 APK 的真实 versionName。
+   CI 每次构建把 versionName 设为 1.1.${GITHUB_RUN_NUMBER}，所以显示值永远和实际版本一致。
+   电脑预览没有原生插件，保留上面的占位文字。 */
+function loadAppVersion() {
+  var box = $('appVer');
+  if (!box) return;
+  if (!(KcbWebview && typeof KcbWebview.getVersion === 'function')) return;   /* 预览：保持占位 */
+  KcbWebview.getVersion().then(function (info) {
+    if (info && info.version) box.textContent = 'v' + info.version;
+  }).catch(function () { /* 读不到就保持占位，不影响使用 */ });
+}
+
 function openWeekPicker() {
   var g = $('weekGrid'), h = '';
   var cur = viewWeek, now = currentWeek();
@@ -1315,7 +1388,7 @@ function syncSettingsForm() {
   });
 }
 
-/* ═══════════════ Toast / 下拉刷新 ═══════════════ */
+/* ═══════════════ Toast ═══════════════ */
 var toastTimer = null;
 function showToast(msg) {
   var t = $('toast');
@@ -1358,26 +1431,6 @@ function bindStatic() {
     saveSettings();
   });
 
-  /* 下拉刷新 */
-  var startY = null, pulling = false;
-  document.addEventListener('touchstart', function (e) {
-    pulling = false;
-    if ($('schedulePage').classList.contains('hidden')) { startY = null; return; }
-    startY = window.scrollY <= 0 ? e.touches[0].clientY : null;
-  }, { passive: true });
-  document.addEventListener('touchmove', function (e) {
-    if (startY === null) return;
-    if (e.touches[0].clientY - startY > 72) {
-      pulling = true;
-      $('ptr').classList.add('show');
-    }
-  }, { passive: true });
-  document.addEventListener('touchend', function () {
-    $('ptr').classList.remove('show');
-    if (pulling) doRefresh(true);
-    startY = null; pulling = false;
-  });
-
   /* 左右滑动切换周次（横向位移明显大于纵向才算，避免误触竖向滚动） */
   var swX = 0, swY = 0, swT = 0, swOn = false;
   $('schedulePage').addEventListener('touchstart', function (e) {
@@ -1417,6 +1470,9 @@ function bindStatic() {
   bindStatic();
   applyPreviewWidth();          /* ?w=390 电脑预览锁成手机宽度 */
   var q = new URLSearchParams(location.search);
+  /* 首次使用弹「使用必读」；放在 demo 判断之前，这样电脑预览也能看到弹窗效果 */
+  mustReadOnFirstLaunch(q.get('demo') === '1');
+  loadAppVersion();      /* 页脚版本号：手机上取已安装 APK 的真实版本 */
   if (q.get('demo') === '1') { enterDemo(); return; }
 
   /* 有缓存直接显示课表（默认 Tab），没有则显示空状态引导 */
