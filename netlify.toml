@@ -1,0 +1,9 @@
+# Netlify 部署配置（静态网页版）
+# 发布目录 web/：单个 index.html + 图标 + manifest.webmanifest
+# 部署方式二选一：
+#   1) Netlify 后台连接本仓库，自动读取这里的配置
+#   2) 直接把 web/ 文件夹拖进 Netlify 的部署区（Drop）
+# 注意：网页版不连任何后端，也不代理学校系统，所有数据只存在用户自己的浏览器里。
+
+[build]
+  publish = "web"

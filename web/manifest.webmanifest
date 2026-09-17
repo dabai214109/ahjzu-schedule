@@ -1,0 +1,17 @@
+{
+  "name": "我的课表 · 安徽建筑大学研究生",
+  "short_name": "我的课表",
+  "description": "安徽建筑大学研究生课表（网页版）：粘贴研究生系统响应文本即可生成课表",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F6FA",
+  "theme_color": "#3B82F6",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
