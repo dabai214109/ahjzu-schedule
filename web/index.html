@@ -434,13 +434,12 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
     <div class="mr-body">
       <p>书签脚本是一小段存在你浏览器书签里的代码。点它一下，就在<b>学校页面内部</b>把课表数据抓出来，再复制粘贴到本页 —— 不用再按 F12。</p>
       <p><b>电脑（Chrome / Edge / 国产浏览器）</b>：先按 Ctrl+Shift+B 显示书签栏，然后把下面那个蓝色按钮<b>拖到书签栏</b>上。以后在学校课表页面点一下它就行。</p>
-      <p><b>iPhone / iPad（Safari）</b>：先在任意页面点「分享 → 添加书签」建一个书签 → 打开书签列表点「编辑」→ 选中它 → 把地址整段删掉，粘贴下面文本框里的内容 → 完成。之后在学校课表页面点这个书签即可。</p>
-      <p><b>安卓（Chrome）</b>：Chrome 需在「设置 → 外观 → 显示书签栏」打开书签栏（窄屏默认关闭）；打开后把蓝色按钮拖上去。</p>
+      <p><b>iPhone / iPad（Safari）</b>：先点击复制脚本内容，接着在任意页面点「分享 → 添加书签」建一个书签 → 打开书签列表点「编辑」→ 选中它 → 把地址整段删掉，粘贴开头复制的脚本内容内容 → 完成。之后按照网页登录流程进入在学校课表页面点这个书签即可。</p>
       <p>抓取成功后屏幕底部会弹出一个面板，点「复制」，再回到本页粘贴到「导入课表」。</p>
       <p class="mr-tip">脚本只在你自己的浏览器里运行，学号密码不会被发送到任何第三方。</p>
     </div>
     <div style="padding: 0 0 6px;">
-      <a id="bmDrag" class="btn-primary" href="javascript:void(0)" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" onclick="return false;">⬅ 把「抓取课表」拖到书签栏</a>
+      <a id="bmDrag" class="btn-primary" href="javascript:void(0)" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" onclick="return false;">点此按钮拖拽至书签栏</a>
       <textarea id="bmCode" readonly style="width:100%;height:86px;margin-top:8px;font:11px/1.4 monospace;border:1px solid #E5E7EF;border-radius:10px;padding:8px;box-sizing:border-box;background:#F8F9FB;color:var(--dim);"></textarea>
       <button class="mini-btn" style="margin-top:8px;width:100%;" onclick="copyBookmarklet()">复制脚本内容</button>
     </div>
