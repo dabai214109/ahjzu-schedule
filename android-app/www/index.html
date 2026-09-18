@@ -139,6 +139,7 @@ button { font-family: inherit; border: none; background: none; cursor: pointer; 
 @keyframes wkInR { from { opacity: .35; transform: translateX(-26px); } }
 table.kcb {
   width: 100%; border-collapse: separate; border-spacing: 0 3px; table-layout: fixed;
+  background-color: var(--bg);
   /* 周一到周日的竖线（参考小爱课程表）：画在【整张表】的背景上。
      关键点：行与行之间那 3px 空隙属于表格的盒子、不属于任何一行/行组，
      所以画在 tr 或 thead/tbody 上时，空隙里没有线 → 竖线会在每一行交界处断开、
@@ -167,10 +168,10 @@ table.kcb {
 .day-h .dw { display: block; font-weight: 600; }
 .day-h .dd { display: block; font-size: 9px; margin-top: 1px; color: #6B7381; }
 .day-h.on { color: var(--accent); font-weight: 700; }
-.kcb td.slot { text-align: center; vertical-align: top; padding-top: 3px; color: #5F6774; }
+.kcb td.slot { text-align: center; vertical-align: top; padding-top: 3px; color: #5F6774; background-color: var(--bg); }
 .slot b { display: block; font-size: 10px; color: #454D5A; font-weight: 600; }
 .slot span { display: block; font-size: 8px; line-height: 1.35; }
-.kcb td.empty { height: 66px; }
+.kcb td.empty { height: 66px; background-color: var(--bg); }
 /* 兜底：空格子自带底线，与上面那条通线同位置重叠（不会变成两倍粗）；
    万一某些 WebView 不画 tr 背景，线也不会整个消失 */
 .kcb td.slot, .kcb td.empty, .kcb tr.break td { border-bottom: 1px solid var(--grid-line); }
@@ -312,7 +313,15 @@ td.cell.multi { background-color: rgba(31, 35, 41, .035); background-clip: conte
 
 /* ─────────── 设置页（Tab 内容页） ─────────── */
 .settings-body { padding: 12px 14px calc(74px + env(safe-area-inset-bottom, 0px)); }
-.group { background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+.group {
+  background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden;
+  background-clip: padding-box; -webkit-background-clip: padding-box;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+.settings-body > .group,
+.settings-body > details.group {
+  border-radius: 14px; overflow: hidden; background-color: var(--surface);
+}
 .group-title { font-size: 12px; color: var(--dim); padding: 12px 16px 2px; }
 .srow { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
 .srow + .srow { border-top: 1px solid #F3F4F8; }
