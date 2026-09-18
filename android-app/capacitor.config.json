@@ -3,11 +3,16 @@
   "appName": "我的课表",
   "webDir": "www",
   "android": {
-    "backgroundColor": "#F5F6FA"
+    "backgroundColor": "#FFFFFF"
   },
   "plugins": {
     "CapacitorHttp": {
       "enabled": true
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "LIGHT",
+      "backgroundColor": "#FFFFFF"
     }
   }
 }
