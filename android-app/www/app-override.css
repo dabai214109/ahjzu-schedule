@@ -1,0 +1,27 @@
+/* APK 专用环境补丁：静态网页版不加载此文件。
+   Android WebView 在沉浸式状态栏 / 合成层下偶尔会让设置页的父背景与圆角裁剪失效，
+   因此在原生环境显式建立灰色画布与白色圆角卡片层。 */
+body.app-env,
+body.app-env #settingsPage {
+  background: #F5F6FA;
+}
+
+body.app-env .settings-body {
+  min-height: 100%;
+  background: #F5F6FA;
+  padding: 12px 14px calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.app-env .settings-body > .group,
+body.app-env .settings-body > details.group {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  background: #FFFFFF !important;
+  background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+  -webkit-mask-image: none;
+  box-shadow: 0 1px 2px rgba(31, 35, 41, .035);
+}

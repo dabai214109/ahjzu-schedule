@@ -6,6 +6,7 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#FFFFFF">
 <title>我的课表</title>
+<link rel="stylesheet" href="app-override.css">
 <style>
 :root {
   --bg: #F5F6FA;
@@ -313,15 +314,7 @@ td.cell.multi { background-color: rgba(31, 35, 41, .035); background-clip: conte
 
 /* ─────────── 设置页（Tab 内容页） ─────────── */
 .settings-body { padding: 12px 14px calc(74px + env(safe-area-inset-bottom, 0px)); }
-.group {
-  background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden;
-  background-clip: padding-box; -webkit-background-clip: padding-box;
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
-}
-.settings-body > .group,
-.settings-body > details.group {
-  border-radius: 14px; overflow: hidden; background-color: var(--surface);
-}
+.group { background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
 .group-title { font-size: 12px; color: var(--dim); padding: 12px 16px 2px; }
 .srow { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
 .srow + .srow { border-top: 1px solid #F3F4F8; }
@@ -686,7 +679,11 @@ function applyNativeSafeTop() {
 
 function initNative() {
   try {
-    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    var nativeApp = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+    /* ?app=1 仅用于电脑预览 APK 专属 CSS，不会伪造或调用原生插件。 */
+    var appPreview = /(?:[?&])app=1(?:&|$)/.test(String(location.search || ''));
+    if (nativeApp || appPreview) document.body.classList.add('app-env');
+    if (nativeApp) {
       KcbWebview = window.Capacitor.Plugins && window.Capacitor.Plugins.KcbWebview;
       if (KcbWebview && KcbWebview.addListener) {
         KcbWebview.addListener('scheduleResponse', function (ev) { handleCapture(ev); });
