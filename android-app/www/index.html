@@ -663,6 +663,18 @@ function deepCopy(o) { try { return structuredClone(o); } catch (e) { return JSO
    原生插件注入 JS 拦截 py_kbcx_ew 的 XHR/fetch 响应 → 回传 JSON → 解析映射到课表 */
 var KcbWebview = null;
 
+function applyNativeSafeTop() {
+  try {
+    if (!KcbWebview || typeof KcbWebview.getStatusBarHeight !== 'function') return;
+    KcbWebview.getStatusBarHeight().then(function (info) {
+      var h = Number(info && info.height);
+      if (isFinite(h) && h > 0) {
+        document.documentElement.style.setProperty('--safe-top', h + 'px');
+      }
+    }).catch(function () { /* 浏览器预览或旧版插件：继续使用 env() 回退 */ });
+  } catch (e) { /* 不影响课表加载 */ }
+}
+
 function initNative() {
   try {
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
@@ -670,6 +682,7 @@ function initNative() {
       if (KcbWebview && KcbWebview.addListener) {
         KcbWebview.addListener('scheduleResponse', function (ev) { handleCapture(ev); });
       }
+      applyNativeSafeTop();
     }
   } catch (e) { KcbWebview = null; }
 }

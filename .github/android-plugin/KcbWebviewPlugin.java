@@ -137,6 +137,30 @@ public class KcbWebviewPlugin extends Plugin {
      * 设置页脚显示的版本号走这里，而不是在网页里写死 ——
      * CI 每次构建都会把 versionName 改成 1.1.${GITHUB_RUN_NUMBER}，这样界面永远与实际一致。
      */
+    /**
+     * 返回 Android 实际状态栏高度，换算为 WebView CSS px。
+     * 某些 Android WebView 不会正确提供 env(safe-area-inset-top)，
+     * 因此前端用这个值覆盖 --safe-top。
+     */
+    @PluginMethod
+    public void getStatusBarHeight(PluginCall call) {
+        try {
+            Activity act = getActivity();
+            if (act == null) {
+                call.reject("no activity");
+                return;
+            }
+            int resId = act.getResources().getIdentifier("status_bar_height", "dimen", "android");
+            int px = resId > 0 ? act.getResources().getDimensionPixelSize(resId) : 0;
+            float density = act.getResources().getDisplayMetrics().density;
+            JSObject ret = new JSObject();
+            ret.put("height", density > 0 ? px / density : px);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("cannot read status bar height: " + e.getMessage());
+        }
+    }
+
     @PluginMethod
     public void getVersion(PluginCall call) {
         try {
