@@ -525,7 +525,7 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       <div class="srow">
         <div class="srow-main">
           <div class="srow-label">研究生系统 termcode</div>
-          <div class="srow-desc">例如 202701，每学期需要修改，改完点顶部 ⟳ 刷新生效</div>
+          <div class="srow-desc">例如 202701，每学期不同；书签脚本抓取时会默认填这个学期（App 版跟随你在学校页面上选的学期）</div>
         </div>
         <input type="text" class="txt" id="setTerm">
       </div>
@@ -729,8 +729,15 @@ function bmMain() {
     return d;
   }
   function isKcb(o) {
-    return !!(o && o.rows && o.rows.length && o.rows[0] &&
-      typeof o.rows[0].jcid !== 'undefined' && typeof o.rows[0].mc !== 'undefined');
+    if (!(o && o.rows && o.rows.length && o.rows[0] &&
+      typeof o.rows[0].jcid !== 'undefined' && typeof o.rows[0].mc !== 'undefined')) return false;
+    /* 结构对但一门课都没有（学期选错时接口就是这样返回）→ 不算课表，
+       否则会把用户已有的课表覆盖成空白 */
+    for (var i = 0; i < o.rows.length; i++) {
+      var r = o.rows[i] || {};
+      for (var d = 1; d <= 7; d++) { if (r['z' + d]) return true; }
+    }
+    return false;
   }
   function tryText(t) {
     if (!t || typeof t !== 'string') return false;
@@ -789,7 +796,7 @@ function bmMain() {
     '<div style="color:#666;font-size:12px;margin-bottom:8px;">方式一：点「抓取」直接取课表（推荐）<br>方式二：点左侧菜单「学生课表查询」，本脚本会自动捕获</div>' +
     '<div style="display:flex;gap:8px;align-items:center;">' +
     '<span style="font-size:12px;color:#666;">学期</span>' +
-    '<input id="__kcb_term" value="202701" style="flex:1;padding:9px 10px;border:1px solid #DDD;border-radius:8px;font-size:13px;">' +
+    '<input id="__kcb_term" value="' + termForPanel() + '" style="flex:1;padding:9px 10px;border:1px solid #DDD;border-radius:8px;font-size:13px;">' +
     '<button id="__kcb_go" style="padding:11px 18px;border:0;border-radius:10px;background:#3B82F6;color:#fff;font-size:15px;font-weight:600;">抓取</button>' +
     '</div>' +
     '<button id="__kcb_cl2" style="width:100%;margin-top:8px;padding:9px;border:0;border-radius:10px;background:#F1F3F7;color:#333;font-size:13px;">关 闭</button>'
@@ -838,13 +845,23 @@ function copyBookmarklet() {
   showToast('复制失败，请长按文本框手动复制');
 }
 
+/* 书签脚本面板里「学期」的默认值 = 设置里的学期代码
+   （只留数字：这个值会被拼进注入学校页面的 HTML，不能让引号之类混进去） */
+function termForPanel() {
+  var t = String((typeof settings !== 'undefined' && settings.term) || '').replace(/[^\d]/g, '');
+  return t || '202701';
+}
+
 /* 收到 py_kbcx_ew 响应 JSON → 解析并映射到课表页 */
 function handleCapture(ev) {
   var raw = (typeof ev.body === 'string') ? JSON.parse(ev.body) : ev.body;
   if (!raw || !raw.rows || !raw.rows.length) throw new Error('响应里没有课表数据（rows 为空）');
+  var courses = parseCourses(raw), slots = extractSlots(raw);
+  /* 学期选错时接口会「正常返回」但每格都是空的 —— 这种情况绝不能把原课表覆盖成空白 */
+  if (!courses.length) throw new Error('这个学期没有课程（学期选错了，或该学期还没排课），已保留原来的课表');
   data = {
-    courses: parseCourses(raw),        /* z1~z7 → 每门课的周次/教师/教室/星期/节次 */
-    slots: extractSlots(raw),          /* jcid 节次结构（上午1~晚上12） */
+    courses: courses,                  /* z1~z7 → 每门课的周次/教师/教室/星期/节次 */
+    slots: slots,                      /* jcid 节次结构（上午1~晚上12） */
     week: raw.week || '',
     term: settings.term,
     fetchedAt: Date.now()

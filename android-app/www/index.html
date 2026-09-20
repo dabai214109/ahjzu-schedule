@@ -505,17 +505,6 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
     </div>
 
     <div class="group">
-      <div class="group-title">学期代码</div>
-      <div class="srow">
-        <div class="srow-main">
-          <div class="srow-label">研究生系统 termcode</div>
-          <div class="srow-desc">例如 202701，每学期需要修改，改完点顶部 ⟳ 刷新生效</div>
-        </div>
-        <input type="text" class="txt" id="setTerm">
-      </div>
-    </div>
-
-    <div class="group">
       <div class="group-title">作息季节</div>
       <div class="srow">
         <div class="srow-main">
@@ -706,7 +695,10 @@ function initNative() {
     if (nativeApp) {
       KcbWebview = window.Capacitor.Plugins && window.Capacitor.Plugins.KcbWebview;
       if (KcbWebview && KcbWebview.addListener) {
-        KcbWebview.addListener('scheduleResponse', function (ev) { handleCapture(ev); });
+        /* 同步失败必须让用户看见原因（例如「这个学期没有课程」），不能静默失败 */
+        KcbWebview.addListener('scheduleResponse', function (ev) {
+          try { handleCapture(ev); } catch (e) { showToast((e && e.message) ? e.message : '同步失败'); }
+        });
       }
       applyNativeSafeTop();
     }
@@ -733,9 +725,12 @@ function openWebviewSync(which) {
 function handleCapture(ev) {
   var raw = (typeof ev.body === 'string') ? JSON.parse(ev.body) : ev.body;
   if (!raw || !raw.rows || !raw.rows.length) throw new Error('响应里没有课表数据（rows 为空）');
+  var courses = parseCourses(raw), slots = extractSlots(raw);
+  /* 学期选错时接口会「正常返回」但每格都是空的 —— 这种情况绝不能把原课表覆盖成空白 */
+  if (!courses.length) throw new Error('这个学期没有课程（学期选错了，或该学期还没排课），已保留原来的课表');
   data = {
-    courses: parseCourses(raw),        /* z1~z7 → 每门课的周次/教师/教室/星期/节次 */
-    slots: extractSlots(raw),          /* jcid 节次结构（上午1~晚上12） */
+    courses: courses,                  /* z1~z7 → 每门课的周次/教师/教室/星期/节次 */
+    slots: slots,                      /* jcid 节次结构（上午1~晚上12） */
     week: raw.week || '',
     term: settings.term,
     fetchedAt: Date.now()
@@ -1520,7 +1515,7 @@ function syncSettingsForm() {
   $('setWeekAuto').textContent = '默认按日期自动计算（当前第 ' + autoWeek() + ' 周），也可手动指定';
   $('setWeekend').checked = !!settings.showWeekend;
   $('setNonCurrent').checked = !!settings.showNonCurrent;
-  $('setTerm').value = settings.term || '';
+  /* 学期代码在 App 里没有意义：同步是打开学校网页、由你在页面上选学期，抓到的自然就是对的学期 */
   $('setFetchedAt').textContent = (data && data.fetchedAt && !data.demo)
     ? new Date(data.fetchedAt).toLocaleString('zh-CN') : '—';
 
@@ -1589,10 +1584,6 @@ function bindStatic() {
   $('setNonCurrent').addEventListener('change', function (e) {
     settings.showNonCurrent = e.target.checked;
     saveSettings(); renderAll();
-  });
-  $('setTerm').addEventListener('change', function (e) {
-    settings.term = e.target.value.trim();
-    saveSettings();
   });
 
   /* 左右滑动切换周次（横向位移明显大于纵向才算，避免误触竖向滚动） */
