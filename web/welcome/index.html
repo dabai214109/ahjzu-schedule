@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>我的课表 · 安徽建筑大学研究生课表工具</title>
+<meta name="description" content="安徽建筑大学研究生课表工具：一键抓取课表、自动算周次、单双周半透明。免费、源码公开、无广告、不收集任何个人信息。安卓下载安装，华为 / 苹果直接用网页版。">
+<meta name="theme-color" content="#F5F6FA">
+<link rel="icon" href="../icon-512.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="我的课表 · 安徽建筑大学研究生课表工具">
+<meta property="og:description" content="免费 · 源码公开 · 无广告 · 不收集任何个人信息">
+<meta property="og:image" content="https://ahjzu-schedule.netlify.app/icon-512.png">
+<style>
+:root{
+  --primary:#3B82F6; --primary-dark:#2563EB; --bg:#F5F6FA; --surface:#FFFFFF;
+  --text:#1F2937; --muted:#6B7280; --border:#E5E7EB; --radius:14px;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px calc(28px + var(--safe-bottom))}
+a{color:var(--primary-dark);text-decoration:none}
+h1,h2,h3{margin:0;line-height:1.35}
+p{margin:0}
+section{margin-top:14px}
+.card{background:var(--surface);border-radius:var(--radius);padding:18px 16px}
+.sec-title{font-size:17px;font-weight:700;margin-bottom:4px}
+.sec-lead{font-size:13.5px;color:var(--muted);margin-bottom:14px}
+
+/* ── 微信提示条 ── */
+.wx-bar{
+  position:sticky;top:0;z-index:50;padding:calc(9px + var(--safe-top)) 14px 9px;
+  background:#FFF7E6;border-bottom:1px solid #FFE0A3;color:#8A5A00;
+  font-size:13.5px;line-height:1.5;
+}
+.wx-bar b{color:#B45309}
+.wx-bar .wx-tag{
+  display:inline-block;font-size:10.5px;background:#FFE0A3;color:#8A5A00;
+  border-radius:5px;padding:0 5px;margin-left:6px;vertical-align:1px;font-weight:600;
+}
+
+/* ── 头部 ── */
+.hero{text-align:center;padding:30px 16px 22px;margin-top:0}
+.hero .app-icon{
+  width:88px;height:88px;border-radius:22px;display:block;margin:0 auto 14px;
+  box-shadow:0 8px 22px rgba(59,130,246,.22);
+}
+.hero h1{font-size:26px;letter-spacing:.5px}
+.hero .sub{font-size:14px;color:var(--muted);margin-top:6px}
+.hero .tagline{
+  display:inline-block;margin-top:14px;padding:6px 12px;border-radius:999px;
+  background:#EFF6FF;color:var(--primary-dark);font-size:13px;font-weight:600;
+}
+.hero .meta{margin-top:10px;font-size:12.5px;color:var(--muted)}
+
+/* ── 按钮 ── */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:15px 16px;border-radius:12px;border:1px solid transparent;
+  font-size:16px;font-weight:600;text-align:center;cursor:pointer;
+}
+.btn + .btn{margin-top:10px}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 6px 16px rgba(59,130,246,.28)}
+.btn-primary:active{background:var(--primary-dark)}
+.btn-ghost{background:var(--surface);color:var(--text);border-color:var(--border)}
+.btn-ghost:active{background:#F9FAFB}
+.btn .size{font-size:12.5px;font-weight:400;opacity:.9}
+.btn .rec{
+  font-size:11px;font-weight:700;background:rgba(255,255,255,.24);
+  border-radius:5px;padding:1px 5px;
+}
+.btn-ghost .rec{background:#EFF6FF;color:var(--primary-dark)}
+.cta-hint{margin-top:10px;font-size:12.5px;color:var(--muted);text-align:center}
+.plat-note{
+  margin-top:12px;padding:11px 12px;border-radius:10px;background:#F9FAFB;
+  border:1px solid var(--border);font-size:12.5px;color:var(--muted);line-height:1.6;
+}
+
+/* ── 体验区 ── */
+.demo-box{text-align:center}
+.phone{
+  width:297px;height:625px;margin:6px auto 0;padding:8px;border-radius:32px;
+  background:#111827;box-shadow:0 14px 34px rgba(17,24,39,.28);
+}
+.phone-screen{width:281px;height:609px;border-radius:25px;overflow:hidden;background:#fff}
+.phone-screen iframe{
+  width:390px;height:845px;border:0;display:block;
+  transform:scale(.72);transform-origin:0 0;
+}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{
+  flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--border);
+  background:var(--surface);color:var(--muted);font-size:13.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;line-height:1.3;
+}
+.tab.on{background:#EFF6FF;border-color:#BFDBFE;color:var(--primary-dark)}
+.demo-tip{margin-top:12px;font-size:12.5px;color:var(--muted)}
+.demo-box .btn{margin-top:14px}
+
+/* ── 功能卡片 ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px}
+.feat{background:var(--surface);border-radius:var(--radius);padding:14px}
+.feat .ico{
+  width:34px;height:34px;border-radius:10px;background:#EFF6FF;
+  display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:9px;
+}
+.feat h3{font-size:14.5px;font-weight:700}
+.feat p{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.6}
+
+/* ── 步骤 ── */
+.step{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:0;padding-bottom:0}
+.step .n{
+  flex:0 0 24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px;
+}
+.step .t{font-size:14px;font-weight:600}
+.step .d{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.6}
+
+/* ── 常见问题 ── */
+details{border-bottom:1px solid var(--border);padding:11px 0}
+details:last-of-type{border-bottom:0;padding-bottom:0}
+summary{font-size:14px;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"＋";color:var(--muted);font-weight:400;flex:0 0 auto}
+details[open] summary::after{content:"－"}
+details .ans{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.7}
+details .ans b{color:var(--text)}
+
+/* ── 页脚 ── */
+footer{margin-top:20px;text-align:center;font-size:12.5px;color:var(--muted);line-height:1.9}
+footer .flinks{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px}
+footer .flinks a{
+  padding:7px 12px;background:var(--surface);border:1px solid var(--border);
+  border-radius:9px;color:var(--text);font-size:12.5px;
+}
+footer .warn{
+  margin-top:12px;padding:11px 12px;border-radius:10px;background:#FEF2F2;
+  border:1px solid #FECACA;color:#991B1B;text-align:left;line-height:1.7;
+}
+</style>
+</head>
+<body>
+
+<!-- 微信内置浏览器会拦截 apk 下载，必须先把用户引到系统浏览器 -->
+<div class="wx-bar" id="wxBar" hidden>
+  <b>请先点右上角「⋯」→「在浏览器中打开」</b><span class="wx-tag">微信内无法下载</span><br>
+  微信内置浏览器不支持安装包下载，用系统浏览器打开本页才能正常下载安装。
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <img class="app-icon" src="../icon-512.png" alt="我的课表 App 图标" width="88" height="88">
+    <h1>我的课表</h1>
+    <p class="sub">安徽建筑大学研究生课表工具</p>
+    <p class="tagline">免费 · 源码公开 · 无广告 · 不收集任何个人信息</p>
+    <p class="meta">安卓版约 3 MB · 免登录 · 导入后离线可看</p>
+  </header>
+
+  <section class="card" id="download">
+    <div class="sec-title">下载 / 打开</div>
+    <div class="sec-lead">安卓建议装 App；华为、苹果直接用网页版，免安装。</div>
+
+    <a class="btn btn-primary" id="btnApk"
+       href="https://gitee.com/dabai214109/ahjzu-schedule/raw/master/kcb.apk">
+      下载安卓版 <span class="size">约 3 MB</span><span class="rec" id="recApk" hidden>推荐</span>
+    </a>
+    <a class="btn btn-ghost" id="btnWeb" href="https://ahjzu-schedule.netlify.app/">
+      华为 / 苹果 → 打开网页版<span class="rec" id="recWeb" hidden>推荐</span>
+    </a>
+    <p class="cta-hint">装不上或不想装，都可以直接用网页版，功能够用。</p>
+
+    <div class="plat-note">
+      <b>下载慢 / 显示「未知大小」？</b>属于正常现象，文件就是 3 MB，稍等几秒即可下完；中途断开也能续传。
+    </div>
+  </section>
+
+  <section class="card demo-box">
+    <div class="sec-title">先试试看</div>
+    <div class="sec-lead">真实界面的可操作演示（示例数据，不联网、不碰学校系统）。两个演示都会先弹「使用必读」，点「我知道了」就能看到课表。</div>
+    <div class="tabs" role="tablist">
+      <button class="tab on" id="tabApp" role="tab" aria-selected="true"
+              data-src="../app/index.html?demo=1&amp;app=1&amp;w=390"
+              data-full="../app/index.html?demo=1&amp;app=1">安卓 App 版</button>
+      <button class="tab" id="tabWeb" role="tab" aria-selected="false"
+              data-src="../index.html?demo=1&amp;w=390"
+              data-full="../index.html?demo=1">网页版</button>
+    </div>
+    <div class="phone">
+      <div class="phone-screen">
+        <iframe id="demoFrame" src="../app/index.html?demo=1&amp;app=1&amp;w=390"
+                title="我的课表 演示" loading="lazy"></iframe>
+      </div>
+    </div>
+    <p class="demo-tip" id="demoTip">安卓 App 的真实界面：装好 APK 打开就是这个样子。</p>
+    <a class="btn btn-ghost" id="demoFull" href="../app/index.html?demo=1&amp;app=1">全屏打开体验</a>
+  </section>
+
+  <section>
+    <div class="grid">
+      <div class="feat"><div class="ico">📋</div><h3>一键抓取课表</h3><p>在学校课表页面点一下书签脚本，自动抓出数据；也可以手动粘贴，不用手抄。</p></div>
+      <div class="feat"><div class="ico">📅</div><h3>自动计算周次</h3><p>填一次开学日期，自动定位到本周；点「本周」随时跳回来。</p></div>
+      <div class="feat"><div class="ico">🌓</div><h3>单双周半透明</h3><p>开启「显示非本周课程」后，非本周的单双周课半透明显示，一眼看清。</p></div>
+      <div class="feat"><div class="ico">👉</div><h3>滑动切换周次</h3><p>左右滑动切上一周 / 下一周；电脑上方向键也能切。</p></div>
+      <div class="feat"><div class="ico">🗓️</div><h3>周末显示开关</h3><p>周末有课就打开，没课就不占位置。</p></div>
+      <div class="feat"><div class="ico">🔒</div><h3>数据只在你设备上</h3><p>不注册、不登录、不上传。学号密码只在你自己的浏览器 / 手机里使用。</p></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="sec-title">怎么装（安卓）</div>
+    <div class="step"><div class="n">1</div><div><div class="t">点上面「下载安卓版」</div><div class="d">用系统浏览器下载，文件约 3 MB。</div></div></div>
+    <div class="step"><div class="n">2</div><div><div class="t">打开安装包，允许安装</div><div class="d">若提示「未知来源应用 / 禁止安装」，在手机设置里允许该浏览器安装应用即可（本 App 未上架应用商店，所以会提示）。</div></div></div>
+    <div class="step"><div class="n">3</div><div><div class="t">打开 App，按「使用必读」导入课表</div><div class="d">导入有两种方式，App 内有一步步的文字说明，跟着做一次就熟。</div></div></div>
+  </section>
+
+  <section class="card">
+    <div class="sec-title">常见问题</div>
+    <details><summary>微信里点了没反应、下载不了？</summary><div class="ans">微信内置浏览器会拦截安装包下载。请点右上角「⋯」→<b>在浏览器中打开</b>，再下载。</div></details>
+    <details><summary>提示「未知来源应用」「禁止安装」怎么办？</summary><div class="ans">这是安卓对非应用商店来源的正常拦截。在安装提示里选<b>「仍要安装 / 允许本次安装」</b>；如果没有该选项，去「设置 → 应用管理 → 浏览器 → 安装未知应用」打开权限，再重试。</div></details>
+    <details><summary>华为、苹果手机怎么办？</summary><div class="ans">用<b>网页版</b>，免安装。打开后可以把它添加到桌面，用起来和 App 差不多：<br>· <b>华为浏览器</b>（官方支持该功能）：点右下角「四个点」→「<b>添加至桌面</b>」；不同版本也可能叫「添加到主屏幕」。<br>· <b>iPhone / iPad 的 Safari</b>：点「分享」→「<b>添加到主屏幕</b>」。<br>其他浏览器大同小异，在菜单里找「添加到桌面 / 添加到主屏幕」就行。</div></details>
+    <details><summary>课表怎么导进来？</summary><div class="ans">两种方式，拿到的东西一样，最后都是粘贴到「设置 → 导入课表」：<br><br><b>① 一键抓取书签脚本</b>（推荐，不用开发者工具，和手动抓取类似）<br>适合<b>电脑</b>（Chrome / Edge / 国产浏览器）和 <b>iPhone / iPad 的 Safari</b>。<b>安卓手机不方便</b>建这种 javascript 书签，具体操作参考网页版中的书签脚本获取方式，按照描述进行操作。<br><br><b>② 手动抓接口响应</b><br>在电脑上登录学校系统 → 打开课表查询页 → 按 F12 → Network 点击筛选 <b>Fetch/XHR</b>，找到 <b>py_kbcx_ew</b> → 右键 py_kbcx_ew 复制为 response/响应，把响应原文粘贴到导入框 → 导入。</div></details>
+    <details><summary>怎么更新到新版本？</summary><div class="ans">App 内「设置 → 检查更新」会提示有没有新版本。也可以直接重新下载上面的安装包<b>覆盖安装</b>，课表数据不会丢。</div></details>
+    <details><summary>收费吗？会收集我的信息吗？</summary><div class="ans">完全免费，无广告，无内购。App 不注册、不上传任何数据，学号密码只在你自己设备上使用。</div></details>
+  </section>
+
+  <footer>
+    <div class="flinks">
+      <a href="https://github.com/dabai214109/ahjzu-schedule">GitHub 源码</a>
+      <a href="https://gitee.com/dabai214109/ahjzu-schedule">Gitee 国内下载</a>
+      <a href="https://github.com/dabai214109/ahjzu-schedule/issues">问题反馈</a>
+      <a href="mailto:polaris214109@agent.qq.com">邮箱反馈</a>
+    </div>
+    <div>个人作品，非学校官方应用 · 与学校系统无隶属关系</div>
+    <div class="warn">
+      <b>关于盗版：</b>本 App <b>未在任何应用商店上架</b>，唯一官方下载地址就是本页的「下载安卓版」按钮（指向作者的 Gitee 仓库）。
+      如果你是在某个应用商店里<b>付费</b>买到这个 App，说明你遇到了假冒版本，请及时申请退款。
+    </div>
+  </footer>
+
+</div>
+
+<noscript>
+  <div class="wx-bar">如果你是在微信里打开的，请点右上角「⋯」→「在浏览器中打开」后再下载。</div>
+</noscript>
+
+<script>
+/* 微信环境检测：微信内置浏览器会拦截 apk 下载，必须提示改用系统浏览器。
+   ?wx=1 仅用于在电脑上预览这条提示，不影响线上行为。 */
+(function () {
+  var ua = String(navigator.userAgent || '');
+  var search = String(location.search || '');
+  var forceWx = /(?:[?&])wx=1(?:&|$)/.test(search);
+  var inWeChat = /MicroMessenger/i.test(ua);
+  if (forceWx || inWeChat) document.getElementById('wxBar').hidden = false;
+
+  /* ?w=390 与 App / 网页版的预览习惯保持一致：在电脑上按手机宽度查看 */
+  var narrow = search.match(/(?:[?&])w=(\d+)(?:&|$)/);
+  if (narrow) {
+    var w = parseInt(narrow[1], 10);
+    if (w >= 320 && w <= 900) {
+      var root = document.documentElement;
+      root.style.width = w + 'px';
+      root.style.margin = '0 auto';
+      root.style.background = '#E9EBF0';
+      root.style.boxShadow = '0 0 0 1px var(--border)';
+    }
+  }
+
+  /* 按平台把对应按钮标成「推荐」：HarmonyOS NEXT 与 iOS 没有安卓安装包可用。
+     注意 HarmonyOS 4 及以下的 UA 里含 Android，装 APK 没问题，所以先判 Android。 */
+  var recApk = document.getElementById('recApk');
+  var recWeb = document.getElementById('recWeb');
+  if (/Android/i.test(ua)) recApk.hidden = false;
+  else if (/iPhone|iPad|iPod|HarmonyOS|ArkWeb|OpenHarmony/i.test(ua)) recWeb.hidden = false;
+
+  /* 演示区：App 版 / 网页版 两个标签，切到哪个才加载哪个（省流量） */
+  var tabs = document.querySelectorAll('.tab');
+  var frame = document.getElementById('demoFrame');
+  var full = document.getElementById('demoFull');
+  var tip = document.getElementById('demoTip');
+  var TIPS = {
+    tabApp: '安卓 App 的真实界面：装好 APK 打开就是这个样子。',
+    tabWeb: '网页版的真实界面：华为、苹果用户打开网页版看到的就是这个。'
+  };
+  Array.prototype.forEach.call(tabs, function (tab) {
+    tab.addEventListener('click', function () {
+      Array.prototype.forEach.call(tabs, function (other) {
+        var on = other === tab;
+        other.classList.toggle('on', on);
+        other.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      frame.src = tab.getAttribute('data-src');
+      full.href = tab.getAttribute('data-full');
+      tip.textContent = TIPS[tab.id] || '';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

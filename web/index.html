@@ -460,7 +460,7 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       <div class="srow">
         <div class="srow-main">
           <div class="srow-label">粘贴课表响应文本</div>
-          <div class="srow-desc">在电脑上登录信息门户 → 打开「学生课表查询」→ 按 F12 → Network 里找到 <b>py_kbcx_ew</b> → 右键 Copy → Copy response，把整段响应原文粘到下面。前后带杂字也能识别。</div>
+          <div class="srow-desc">在电脑上登录学校系统 → 打开课表查询页 → 按 F12 → Network 点击筛选 <b>Fetch/XHR</b> → 找到 <b>py_kbcx_ew</b> → 右键 py_kbcx_ew 复制为 response/响应，把整段响应原文粘到下面。前后带杂字也能识别。</div>
         </div>
       </div>
       <div style="padding: 10px 16px 14px;">
@@ -1258,7 +1258,7 @@ function renderGrid() {
     wrap.innerHTML = '<div class="empty-state">' +
       '<div class="empty-logo">课</div>' +
       '<div style="font-size:15px;font-weight:600;">还没有课表数据</div>' +
-      '<div style="font-size:12px;color:var(--dim);line-height:1.8;">在电脑上登录信息门户 → 打开「学生课表查询」<br>按 F12 找到 py_kbcx_ew，右键 Copy response<br>整段粘贴到「设置 → 导入课表」即可</div>' +
+      '<div style="font-size:12px;color:var(--dim);line-height:1.8;">在电脑上登录学校系统 → 打开课表查询页<br>按 F12 → Network 筛选 Fetch/XHR，找到 py_kbcx_ew<br>右键复制为 response/响应，粘到「设置 → 导入课表」即可</div>' +
       '<button class="btn-primary" onclick="gotoImport()">去粘贴导入课表</button>' +
       '<button class="empty-link" onclick="enterDemo()">先看看示例课表 →</button>' +
       '</div>';
@@ -1419,7 +1419,11 @@ function sheetClose(e, id) { if (e.target.id === id) hideSheet(id); }
 var MUST_READ_KEY = 'kcb_mustread_web_v1';
 var MUST_READ_PARAS = [
   '本网页版仅适用于安建大研究生课表，纯前端运行，<b>不收集和上传任何个人信息</b>。',
-  '用法二选一：① 用「一键抓取」书签脚本（推荐，不用碰开发者工具）；② 在电脑上登录学校信息门户 → 打开「研究生系统」→「培养管理」→「学生课表查询」→ 按 F12 在 Network 里找到 <b>py_kbcx_ew</b> → 右键 Copy → Copy response。两种方式拿到的东西一样：把响应原文粘贴到「设置 → 导入课表」，即可自动映射成课表。',
+  '用法二选一（两种方式拿到的东西一样，最后都是粘到「设置 → 导入课表」）：<br>' +
+  '<b>① 一键抓取书签脚本</b>（推荐，不用开发者工具，和手动抓取类似）<br>' +
+  '适合电脑（Chrome / Edge / 国产浏览器）和 iPhone / iPad 的 Safari。安卓手机不方便建这种 javascript 书签，具体操作见「设置 → 一键抓取」，按页面上的描述进行操作。<br>' +
+  '<b>② 手动抓接口响应</b><br>' +
+  '在电脑上登录学校系统 → 打开课表查询页 → 按 F12 → Network 点击筛选 Fetch/XHR，找到 <b>py_kbcx_ew</b> → 右键 py_kbcx_ew 复制为 response/响应，把响应原文粘贴到导入框 → 导入。',
   '课表数据只保存在你自己的浏览器里：换设备、换浏览器或清理缓存后，需要重新粘贴导入一次。',
   '有问题请移步 GitHub 项目 ahjzu-schedule 提交 PR。'
 ];

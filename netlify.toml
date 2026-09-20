@@ -6,4 +6,7 @@
 # 注意：网页版不连任何后端，也不代理学校系统，所有数据只存在用户自己的浏览器里。
 
 [build]
+  # 构建时把安卓 App 的前端复制到 web/app/，供展示页内嵌「App 版」操作演示。
+  # 复制而不是提交副本：App 前端只有 android-app/www/index.html 一份源文件。
+  command = "node .github/scripts/build-web-app.js"
   publish = "web"

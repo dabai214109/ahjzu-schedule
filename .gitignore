@@ -30,6 +30,10 @@ Screenshot*
 # 早期的工作移交报告：内容已过时（还写着仓库是 Private），不属于 app；本地文件保留
 /工作移交报告.md
 
+# 展示页内嵌「App 版」演示用的生成物：由 .github/scripts/build-web-app.js 在 Netlify
+# 构建时从 android-app/www/ 复制而来，不进版本库（避免维护第二份副本）
+/web/app/
+
 # Node / Capacitor / Android（本地不编译，全部在 GitHub Actions 云端完成）
 node_modules/
 .npm-cache/

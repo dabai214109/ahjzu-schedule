@@ -17,6 +17,9 @@
 2. 下载最新版 `kcb-v1.1.x.apk`
 3. 手机上安装（首次需允许「未知来源应用」），之后更新直接覆盖安装
 
+> 🇨🇳 **国内下载（免登录、不限速、永远是最新版）**：<https://gitee.com/dabai214109/ahjzu-schedule/raw/master/kcb.apk>
+> 同一仓库里还有 `version.json`（版本信息，供后续 App 内「检查更新」使用）。
+
 ### 使用（v1.1：原生网页同步课表）
 
 App 打开就是课表页，底部两个 Tab：**课程表 / 设置**。首次同步课表：
@@ -125,4 +128,18 @@ python app.py
 
 ## License
 
-MIT
+本项目采用 **[PolyForm Noncommercial License 1.0.0](LICENSE)**（原文见 `LICENSE`）：
+
+- ✅ 允许**个人**使用、学习、修改、分享；非营利组织、教育机构、公益与政府机构的使用也属于许可范围
+- ❌ **禁止任何商业用途**，包括但不限于：二次打包后上架应用商店、内置广告或收费、作为付费服务的一部分销售
+
+> 严格来说这**不是** OSI 定义的开源许可证（它限制了使用领域），准确的表述是**源码公开**。宣传时请用「源码公开」，不要写「开源」。
+
+## ⚠️ 关于盗版
+
+- 本 App **未在任何应用商店上架**，也没有任何付费版本
+- **唯一官方下载地址**：
+  - 国内（Gitee，免登录、不限速）：<https://gitee.com/dabai214109/ahjzu-schedule/raw/master/kcb.apk>
+  - GitHub Releases：<https://github.com/dabai214109/ahjzu-schedule/releases>
+- 如果你在某应用商店里**付费**买到本 App，那是假冒版本，请及时申请退款
+- 转载或二次分发时，必须保留 `LICENSE` 开头 `Required Notice:` 的署名行（许可证的强制要求）
