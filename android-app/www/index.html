@@ -424,6 +424,19 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
   </div>
 </div>
 
+<!-- ═══════════ 发现新版本（设置 → 检查更新）═══════════ -->
+<div class="sheet" id="updateSheet" onclick="sheetClose(event,'updateSheet')">
+  <div class="sheet-card" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">发现新版本</div>
+    <div class="mr-body" id="updBody"></div>
+    <button class="sheet-close-btn" onclick="doUpdate()">去下载新版</button>
+    <div style="text-align:center; margin-top:12px;">
+      <a class="empty-link" href="javascript:void(0)" onclick="hideSheet('updateSheet')">以后再说</a>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ 设置页（Tab 2）═══════════ -->
 <div class="hidden" id="settingsPage">
   <div class="head-sticky">
@@ -538,6 +551,13 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
           <div class="srow-desc">首次使用会自动弹出；这里可以随时再看</div>
         </div>
         <button class="mini-btn" onclick="openMustRead()">查看</button>
+      </div>
+      <div class="srow">
+        <div class="srow-main">
+          <div class="srow-label">检查更新</div>
+          <div class="srow-desc" id="updateDesc">点「检查」看看有没有新版本</div>
+        </div>
+        <button class="mini-btn" onclick="checkUpdate()">检查</button>
       </div>
     </div>
 
@@ -1327,8 +1347,103 @@ function loadAppVersion() {
   if (!box) return;
   if (!(KcbWebview && typeof KcbWebview.getVersion === 'function')) return;   /* 预览：保持占位 */
   KcbWebview.getVersion().then(function (info) {
-    if (info && info.version) box.textContent = 'v' + info.version;
+    if (info && info.version) {
+      box.textContent = 'v' + info.version;
+      installedVersion = info.version;
+      setUpdateDesc('当前 v' + info.version + '，点「检查」看有没有新版');
+    }
   }).catch(function () { /* 读不到就保持占位，不影响使用 */ });
+}
+
+/* ═══════════════ 检查更新 ═══════════════
+   版本清单放在 Gitee 的正式通道（国内直链、公开可读、随发布更新）。
+   关键点：App 的 WebView 源是 https://localhost，而 Gitee 直链不返回
+   access-control-allow-origin，普通网页里 fetch 会被浏览器拦掉；
+   好在 capacitor.config.json 已启用 CapacitorHttp，它会接管 fetch 走原生通道，
+   因此不受跨域限制。电脑浏览器里没有原生通道，只能如实提示，不做假。
+   预览弹层外观：在电脑上用 ?updtest=1 打开（会和示例数据一起显示一份假清单）。 */
+var UPDATE_URL = 'https://gitee.com/dabai214109/ahjzu-schedule/raw/master/version.json';
+var UPDATE_FALLBACK_URL = 'https://gitee.com/dabai214109/ahjzu-schedule/raw/master/kcb.apk';
+var installedVersion = '';        /* loadAppVersion() 填进来，形如 1.2.0 */
+var pendingUpdateUrl = '';
+
+/* 语义化版本比较：必须比大小，不能比字符串（"1.10.0" > "1.9.0" 但字符串比会反过来） */
+function versionTuple(s) {
+  var m = /(\d+)\.(\d+)\.(\d+)/.exec(String(s == null ? '' : s));
+  return m ? [+m[1], +m[2], +m[3]] : null;
+}
+function isNewerVersion(remote, local) {
+  var r = versionTuple(remote), l = versionTuple(local);
+  if (!r) return false;                 /* 远端清单读不懂就当没有新版 */
+  if (!l) return true;                  /* 本地版本读不到（电脑预览）时按有新版处理 */
+  for (var i = 0; i < 3; i++) { if (r[i] !== l[i]) return r[i] > l[i]; }
+  return false;
+}
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function setUpdateDesc(text) { var d = $('updateDesc'); if (d) d.textContent = text; }
+
+/* 仅电脑预览用：?updtest=1 时给一份假清单，方便看「发现新版本」弹层的样子。
+   真机（有原生插件）永远走真实检查，不会走到这里。 */
+function previewUpdateInfo() {
+  if (KcbWebview) return null;
+  if (!/(?:[?&])updtest=1(?:&|$)/.test(String(location.search || ''))) return null;
+  return {
+    versionName: '1.9.9',
+    url: UPDATE_FALLBACK_URL,
+    notes: '这是一条预览用的假数据；真机上这里显示发布时写的更新说明。'
+  };
+}
+
+function checkUpdate() {
+  setUpdateDesc('正在检查…');
+  var fake = previewUpdateInfo();
+  if (fake) { handleUpdateInfo(fake); return; }
+  if (!KcbWebview) {
+    /* 电脑浏览器/展示页内嵌：跨域必然被拦，直接说明，别让人以为是自己网络坏了 */
+    setUpdateDesc('电脑浏览器受跨域限制；装到手机上就能检查');
+    showToast('电脑浏览器无法检查更新，手机上可用');
+    return;
+  }
+  fetch(UPDATE_URL, { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(handleUpdateInfo)
+    .catch(function () {
+      setUpdateDesc('检查失败，点「检查」可重试');
+      showToast('检查更新失败，请检查网络后重试');
+    });
+}
+
+function handleUpdateInfo(info) {
+  if (!info || !info.versionName) throw new Error('版本清单格式不对');
+  if (isNewerVersion(info.versionName, installedVersion)) {
+    pendingUpdateUrl = info.url || UPDATE_FALLBACK_URL;
+    $('updBody').innerHTML =
+      '<p>当前版本 <b>v' + escHtml(installedVersion || '未知') + '</b>，' +
+      '最新版本 <b>v' + escHtml(info.versionName) + '</b></p>' +
+      (info.notes ? '<p>' + escHtml(info.notes) + '</p>' : '') +
+      '<p>下载后直接安装覆盖即可，<b>课表数据不会丢</b>。</p>';
+    openSheet('updateSheet');
+    setUpdateDesc('发现新版本 v' + info.versionName);
+  } else {
+    var cur = installedVersion || info.versionName;
+    setUpdateDesc('当前 v' + cur + '，已是最新');
+    showToast('已是最新版本 v' + cur);
+  }
+}
+
+/* 下载交给系统浏览器：应用内 WebView 里点 APK 链接会失败或被拦 */
+function doUpdate() {
+  hideSheet('updateSheet');
+  var url = pendingUpdateUrl || UPDATE_FALLBACK_URL;
+  if (KcbWebview && typeof KcbWebview.openExternal === 'function') {
+    KcbWebview.openExternal({ url: url }).catch(function () { window.open(url, '_blank'); });
+    return;
+  }
+  window.open(url, '_blank');
 }
 
 function openWeekPicker() {
