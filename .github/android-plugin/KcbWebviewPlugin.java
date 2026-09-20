@@ -33,6 +33,10 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Collections;
 
 /**
@@ -176,6 +180,66 @@ public class KcbWebviewPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("cannot read version: " + e.getMessage());
         }
+    }
+
+    /**
+     * 原生 HTTP GET，专供「检查更新」读版本清单。
+     *
+     * 为什么不用网页里的 fetch：App 的 WebView 源是 https://localhost，而 Gitee 的
+     * raw 直链不返回 access-control-allow-origin，浏览器层面会被跨域拦掉；
+     * CapacitorHttp 的 fetch 补丁行为又不可控（实测在真机上直接失败）。
+     * 这里在原生侧自己发请求、原样回传文本，行为完全可见。
+     *
+     * 网络请求必须放子线程，否则 Android 会抛 NetworkOnMainThreadException。
+     */
+    @PluginMethod
+    public void httpGet(final PluginCall call) {
+        final String url = call.getString("url");
+        if (TextUtils.isEmpty(url)) {
+            call.reject("missing url");
+            return;
+        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection conn = null;
+                try {
+                    conn = (HttpURLConnection) new URL(url.trim()).openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(10000);
+                    conn.setReadTimeout(10000);
+                    conn.setInstanceFollowRedirects(true);
+                    conn.setRequestProperty("User-Agent", "KcbApp (Android)");
+                    conn.setRequestProperty("Accept", "application/json, text/plain, */*");
+                    int code = conn.getResponseCode();
+                    InputStream in = (code >= 200 && code < 300)
+                            ? conn.getInputStream() : conn.getErrorStream();
+                    String body = readStream(in);
+                    JSObject ret = new JSObject();
+                    ret.put("status", code);
+                    ret.put("data", body == null ? "" : body);
+                    call.resolve(ret);
+                } catch (Exception e) {
+                    call.reject("http failed: " + e.getMessage());
+                } finally {
+                    if (conn != null) conn.disconnect();
+                }
+            }
+        }).start();
+    }
+
+    /** 读干一个流（上限 256KB；版本清单只有几百字节，防意外大响应） */
+    private String readStream(InputStream in) throws Exception {
+        if (in == null) return "";
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] buf = new byte[4096];
+        int n;
+        while ((n = in.read(buf)) > 0) {
+            bos.write(buf, 0, n);
+            if (bos.size() > 262144) break;
+        }
+        in.close();
+        return new String(bos.toByteArray(), "UTF-8");
     }
 
     @PluginMethod

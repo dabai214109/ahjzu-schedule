@@ -1398,21 +1398,49 @@ function previewUpdateInfo() {
   };
 }
 
+/* 取版本清单：优先自家插件的原生 HTTP（最可控），再退到 CapacitorHttp 插件，
+   最后才是普通 fetch（电脑浏览器里会被跨域拦，真机基本走不到这一步）。
+   实测：真机上 CapacitorHttp 的 fetch 补丁会失败，所以不要只依赖它。 */
+function fetchUpdateInfo() {
+  if (KcbWebview && typeof KcbWebview.httpGet === 'function') {
+    return KcbWebview.httpGet({ url: UPDATE_URL }).then(function (res) {
+      var code = res && res.status;
+      if (code && (code < 200 || code >= 300)) throw new Error('HTTP ' + code);
+      if (!res || typeof res.data !== 'string') throw new Error('响应为空');
+      return JSON.parse(res.data);
+    });
+  }
+  var plugins = window.Capacitor && window.Capacitor.Plugins;
+  var capHttp = plugins && plugins.CapacitorHttp;
+  if (capHttp && typeof capHttp.get === 'function') {
+    return capHttp.get({ url: UPDATE_URL }).then(function (res) {
+      if (!res || res.status < 200 || res.status >= 300) throw new Error('HTTP ' + ((res && res.status) || '?'));
+      return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+    });
+  }
+  return fetch(UPDATE_URL, { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+}
+
 function checkUpdate() {
   setUpdateDesc('正在检查…');
   var fake = previewUpdateInfo();
   if (fake) { handleUpdateInfo(fake); return; }
-  if (!KcbWebview) {
+  var plugins = window.Capacitor && window.Capacitor.Plugins;
+  if (!KcbWebview && !(plugins && plugins.CapacitorHttp)) {
     /* 电脑浏览器/展示页内嵌：跨域必然被拦，直接说明，别让人以为是自己网络坏了 */
     setUpdateDesc('电脑浏览器受跨域限制；装到手机上就能检查');
     showToast('电脑浏览器无法检查更新，手机上可用');
     return;
   }
-  fetch(UPDATE_URL, { cache: 'no-store' })
-    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  fetchUpdateInfo()
     .then(handleUpdateInfo)
-    .catch(function () {
-      setUpdateDesc('检查失败，点「检查」可重试');
+    .catch(function (err) {
+      /* 把真实原因写在小字里，方便排查，而不是只说「网络错误」 */
+      var why = (err && err.message) ? String(err.message).slice(0, 46) : '未知原因';
+      setUpdateDesc('检查失败（' + why + '），点「检查」可重试');
       showToast('检查更新失败，请检查网络后重试');
     });
 }
