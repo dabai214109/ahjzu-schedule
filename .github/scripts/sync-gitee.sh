@@ -31,9 +31,11 @@ REMOTE="https://${OWNER}:${GITEE_TOKEN}@gitee.com/${OWNER}/${REPO}.git"
 BETA_URL="https://gitee.com/${OWNER}/${REPO}/raw/beta/kcb-beta.apk"
 APK_URL="https://gitee.com/${OWNER}/${REPO}/raw/master/kcb.apk"
 
-APK="$(ls kcb-*.apk 2>/dev/null | head -1 || true)"
+# 只取版本命名的那个包（kcb-1.2.0.apk）；
+# 不能用 kcb-*.apk，否则会匹配到未签名的 kcb-aligned.apk
+APK="$(ls kcb-[0-9]*.apk 2>/dev/null | head -1 || true)"
 if [ -z "$APK" ]; then
-  echo "::error::当前目录没找到 kcb-*.apk（应在签名步骤产出）"
+  echo "::error::当前目录没找到 kcb-<版本>.apk（应在签名步骤产出）"
   exit 1
 fi
 

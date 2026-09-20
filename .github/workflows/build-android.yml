@@ -98,13 +98,13 @@ jobs:
             --ks-pass "pass:$PASS" \
             --out "kcb-${APP_VERSION}.apk" kcb-aligned.apk
           "$BT/apksigner" verify --print-certs "kcb-${APP_VERSION}.apk"
-          ls -la kcb-*.apk
+          ls -la kcb-[0-9]*.apk
 
       - name: Upload artifact（测试包，仅登录可见）
         uses: actions/upload-artifact@v7
         with:
           name: kcb-apk-${{ steps.ver.outputs.name }}-run${{ github.run_number }}
-          path: kcb-*.apk
+          path: kcb-[0-9]*.apk
 
       # ── 测试通道：每次 push 都同步，用户无感 ──────────────────────────
       - name: 同步测试版到 Gitee（kcb-beta.apk）
@@ -132,7 +132,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG 已存在，跳过创建"
           else
-            gh release create "$TAG" kcb-*.apk \
+            gh release create "$TAG" kcb-[0-9]*.apk \
               --title "我的课表 Android v${APP_VERSION}" \
               --notes "安徽建筑大学研究生课表 App v${APP_VERSION}
 
