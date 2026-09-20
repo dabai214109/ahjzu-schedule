@@ -552,7 +552,7 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       </div>
     </div>
     <div class="settings-foot">
-      我的课表 · 安徽建筑大学研究生 · <span id="appVer">v1.1.x（本地预览）</span><br>
+      我的课表 · 安徽建筑大学研究生 · <span id="appVer">v1.2.x（本地预览）</span><br>
       <a class="foot-link" href="javascript:void(0)" onclick="openProject()">github项目ahjzu-schedule</a>
     </div>
   </div>
@@ -1320,7 +1320,7 @@ function openProject() {
 
 /* ═══════════════ 版本号（设置页脚） ═══════════════
    版本号不写死在网页里：向原生插件要已安装 APK 的真实 versionName。
-   CI 每次构建把 versionName 设为 1.1.${GITHUB_RUN_NUMBER}，所以显示值永远和实际版本一致。
+   CI 每次构建把 versionName 设为 android-app/VERSION 里的版本号，所以显示值永远和实际版本一致。
    电脑预览没有原生插件，保留上面的占位文字。 */
 function loadAppVersion() {
   var box = $('appVer');

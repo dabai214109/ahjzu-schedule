@@ -135,7 +135,7 @@ public class KcbWebviewPlugin extends Plugin {
     /**
      * 把已安装 APK 的真实版本号告诉前端。
      * 设置页脚显示的版本号走这里，而不是在网页里写死 ——
-     * CI 每次构建都会把 versionName 改成 1.1.${GITHUB_RUN_NUMBER}，这样界面永远与实际一致。
+     * CI 每次构建都会把 versionName 改成 android-app/VERSION 里的版本号，这样界面永远与实际一致。
      */
     /**
      * 返回 Android 实际状态栏高度，换算为 WebView CSS px。

@@ -14,7 +14,7 @@
 ### 下载安装
 
 1. 打开仓库 **Releases** 页面：https://github.com/dabai214109/ahjzu-schedule/releases
-2. 下载最新版 `kcb-v1.1.x.apk`
+2. 下载最新版 APK（文件名形如 `kcb-1.2.0.apk`）
 3. 手机上安装（首次需允许「未知来源应用」），之后更新直接覆盖安装
 
 > 🇨🇳 **国内下载（免登录、不限速、永远是最新版）**：<https://gitee.com/dabai214109/ahjzu-schedule/raw/master/kcb.apk>

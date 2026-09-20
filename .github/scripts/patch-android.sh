@@ -36,9 +36,13 @@ cat > "$RES/values/ic_launcher_background.xml" <<'EOF'
 </resources>
 EOF
 
-echo "==> 版本号 (run #${GITHUB_RUN_NUMBER})"
-sed -i "s|versionCode [0-9][0-9]*|versionCode ${GITHUB_RUN_NUMBER}|" "$APP/app/build.gradle"
-sed -i "s|versionName \"[^\"]*\"|versionName \"1.1.${GITHUB_RUN_NUMBER}\"|" "$APP/app/build.gradle"
+# 版本号唯一来源是 android-app/VERSION，这里只是把它换算后写进 gradle
+VERSION_NAME="$(node .github/scripts/version.js --name)"
+VERSION_CODE="$(node .github/scripts/version.js --code)"
+echo "==> 版本号 v${VERSION_NAME}（versionCode ${VERSION_CODE}）"
+sed -i "s|versionCode [0-9][0-9]*|versionCode ${VERSION_CODE}|" "$APP/app/build.gradle"
+sed -i "s|versionName \"[^\"]*\"|versionName \"${VERSION_NAME}\"|" "$APP/app/build.gradle"
+grep -n 'versionCode\|versionName' "$APP/app/build.gradle" | head -2
 
 echo "==> 注册原生 WebView 插件（课表响应捕获）"
 cp .github/android-plugin/KcbWebviewPlugin.java "$APP/app/src/main/java/com/dabai/kcb/"

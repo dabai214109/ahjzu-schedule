@@ -1,5 +1,11 @@
 name: Build Android APK
 
+# 三条通道（详见 .github/scripts/sync-gitee.sh 顶部说明）：
+#   1. push 代码            → 只编译；测试包进 Actions Artifacts，并同步到 Gitee 的 beta 分支
+#                             （App 不读 beta，所以其他用户完全无感）
+#   2. 手动 Run workflow    → 勾「正式发布」才会更新 Gitee 的 kcb.apk + version.json
+#                             （用户的「检查更新」只认 version.json，这一步才会影响用户）
+#   3. 版本号唯一来源是 android-app/VERSION，不再用 GITHUB_RUN_NUMBER
 on:
   push:
     branches: [main]
@@ -7,6 +13,11 @@ on:
       - 'android-app/**'
       - '.github/**'
   workflow_dispatch:
+    inputs:
+      publish:
+        description: '正式发布到 Gitee（更新 kcb.apk + version.json，所有用户会收到更新提示）'
+        type: boolean
+        default: false
 
 concurrency:
   group: build-apk
@@ -32,6 +43,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+
+      - name: 读取版本号（android-app/VERSION）
+        id: ver
+        run: |
+          node .github/scripts/version.js --check
+          echo "name=$(node .github/scripts/version.js --name)" >> "$GITHUB_OUTPUT"
+          echo "code=$(node .github/scripts/version.js --code)" >> "$GITHUB_OUTPUT"
 
       - name: Create Android project (Capacitor)
         working-directory: android-app
@@ -67,6 +85,7 @@ jobs:
       - name: Sign APK
         env:
           KCB_KEYSTORE_PASSWORD: ${{ secrets.KCB_KEYSTORE_PASSWORD }}
+          APP_VERSION: ${{ steps.ver.outputs.name }}
         run: |
           set -euo pipefail
           PASS="${KCB_KEYSTORE_PASSWORD:-android}"
@@ -77,21 +96,58 @@ jobs:
           "$BT/apksigner" sign \
             --ks /tmp/release.keystore.p12 --ks-type PKCS12 \
             --ks-pass "pass:$PASS" \
-            --out "kcb-v1.1.${GITHUB_RUN_NUMBER}.apk" kcb-aligned.apk
-          "$BT/apksigner" verify --print-certs "kcb-v1.1.${GITHUB_RUN_NUMBER}.apk"
+            --out "kcb-${APP_VERSION}.apk" kcb-aligned.apk
+          "$BT/apksigner" verify --print-certs "kcb-${APP_VERSION}.apk"
+          ls -la kcb-*.apk
 
-      - name: Upload artifact
+      - name: Upload artifact（测试包，仅登录可见）
         uses: actions/upload-artifact@v7
         with:
-          name: kcb-apk
-          path: kcb-v1.1.*.apk
+          name: kcb-apk-${{ steps.ver.outputs.name }}-run${{ github.run_number }}
+          path: kcb-*.apk
 
-      - name: Create GitHub Release
+      # ── 测试通道：每次 push 都同步，用户无感 ──────────────────────────
+      - name: 同步测试版到 Gitee（kcb-beta.apk）
+        if: ${{ !inputs.publish }}
+        continue-on-error: true
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: bash .github/scripts/sync-gitee.sh beta
+
+      # ── 正式通道：只有手动 Run workflow 勾选才会执行 ──────────────────
+      - name: 正式发布到 Gitee（kcb.apk + version.json）
+        if: ${{ inputs.publish }}
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: bash .github/scripts/sync-gitee.sh publish
+
+      - name: 创建 GitHub Release（仅正式发布）
+        if: ${{ inputs.publish }}
         env:
           GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.ver.outputs.name }}
         run: |
-          TAG="v1.1.${GITHUB_RUN_NUMBER}"
-          gh release view "$TAG" >/dev/null 2>&1 || \
-          gh release create "$TAG" kcb-v1.1.*.apk \
-            --title "我的课表 Android v1.1.${GITHUB_RUN_NUMBER}" \
-            --notes "安徽建筑大学研究生课表 App。下载 kcb-v1.1.${GITHUB_RUN_NUMBER}.apk 安装；首次安装需允许「未知来源应用」。之后更新直接安装新版覆盖即可。"
+          set -euo pipefail
+          TAG="v${APP_VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，跳过创建"
+          else
+            gh release create "$TAG" kcb-*.apk \
+              --title "我的课表 Android v${APP_VERSION}" \
+              --notes "安徽建筑大学研究生课表 App v${APP_VERSION}
+
+          下载 kcb-${APP_VERSION}.apk 安装；首次安装需允许「未知来源应用」。
+          已装旧版的话，也可以直接在 App 内「设置 → 检查更新」升级，课表数据不会丢。
+
+          国内下载更快：[Gitee 直链](https://gitee.com/dabai214109/ahjzu-schedule/raw/master/kcb.apk)"
+          fi
+
+      - name: 本次结果
+        if: always()
+        env:
+          APP_VERSION: ${{ steps.ver.outputs.name }}
+        run: |
+          echo "版本 v${APP_VERSION}"
+          echo "测试包：Gitee beta 分支 kcb-beta.apk（或本页 Artifacts）"
+          echo "正式发布：${{ inputs.publish }}"
+          echo "版本清单：${{ steps.ver.outputs.code }}"

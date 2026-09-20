@@ -1460,7 +1460,7 @@ function openProject() {
 
 /* ═══════════════ 版本号（设置页脚） ═══════════════
    版本号不写死在网页里：向原生插件要已安装 APK 的真实 versionName。
-   CI 每次构建把 versionName 设为 1.1.${GITHUB_RUN_NUMBER}，所以显示值永远和实际版本一致。
+   CI 每次构建把 versionName 设为 android-app/VERSION 里的版本号，所以显示值永远和实际版本一致。
    电脑预览没有原生插件，保留上面的占位文字。 */
 function loadAppVersion() {
   var box = $('appVer');
