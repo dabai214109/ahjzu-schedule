@@ -205,7 +205,7 @@ footer .warn{
 
   <section>
     <div class="grid">
-      <div class="feat"><div class="ico">📋</div><h3>一键抓取课表</h3><p>在学校课表页面点一下书签脚本，自动抓出数据；也可以手动粘贴，不用手抄。</p></div>
+      <div class="feat"><div class="ico">📋</div><h3>一键抓取课表</h3><p>在学校课表页面点一下书签脚本，自动抓出数据（点完再点一下左侧菜单即可）；也可以手动粘贴，不用手抄。</p></div>
       <div class="feat"><div class="ico">📅</div><h3>自动计算周次</h3><p>填一次开学日期，自动定位到本周；点「本周」随时跳回来。</p></div>
       <div class="feat"><div class="ico">🌓</div><h3>单双周半透明</h3><p>开启「显示非本周课程」后，非本周的单双周课半透明显示，一眼看清。</p></div>
       <div class="feat"><div class="ico">👉</div><h3>滑动切换周次</h3><p>左右滑动切上一周 / 下一周；电脑上方向键也能切。</p></div>
@@ -226,7 +226,7 @@ footer .warn{
     <details><summary>微信里点了没反应、下载不了？</summary><div class="ans">微信内置浏览器会拦截安装包下载。请点右上角「⋯」→<b>在浏览器中打开</b>，再下载。</div></details>
     <details><summary>提示「未知来源应用」「禁止安装」怎么办？</summary><div class="ans">这是安卓对非应用商店来源的正常拦截。在安装提示里选<b>「仍要安装 / 允许本次安装」</b>；如果没有该选项，去「设置 → 应用管理 → 浏览器 → 安装未知应用」打开权限，再重试。</div></details>
     <details><summary>华为、苹果手机怎么办？</summary><div class="ans">用<b>网页版</b>，免安装。打开后可以把它添加到桌面，用起来和 App 差不多：<br>· <b>华为浏览器</b>（官方支持该功能）：点右下角「四个点」→「<b>添加至桌面</b>」；不同版本也可能叫「添加到主屏幕」。<br>· <b>iPhone / iPad 的 Safari</b>：点「分享」→「<b>添加到主屏幕</b>」。<br>其他浏览器大同小异，在菜单里找「添加到桌面 / 添加到主屏幕」就行。</div></details>
-    <details><summary>课表怎么导进来？</summary><div class="ans">两种方式，拿到的东西一样，最后都是粘贴到「设置 → 导入课表」：<br><br><b>① 一键抓取书签脚本</b>（推荐，不用开发者工具，和手动抓取类似）<br>适合<b>电脑</b>（Chrome / Edge / 国产浏览器）和 <b>iPhone / iPad 的 Safari</b>。<b>安卓手机不方便</b>建这种 javascript 书签，具体操作参考网页版中的书签脚本获取方式，按照描述进行操作。<br><br><b>② 手动抓接口响应</b><br>在电脑上登录学校系统 → 打开课表查询页 → 按 F12 → Network 点击筛选 <b>Fetch/XHR</b>，找到 <b>py_kbcx_ew</b> → 右键 py_kbcx_ew 复制为 response/响应，把响应原文粘贴到导入框 → 导入。</div></details>
+    <details><summary>课表怎么导进来？</summary><div class="ans">用法二选一（两种方式拿到的东西一样，最后都是粘到「设置 → 导入课表」）：<br><br><b>① 一键抓取书签脚本</b>（推荐，不用开发者工具，和手动抓取类似）<br>适合<b>电脑</b>（Chrome / Edge / 国产浏览器）和 <b>iPhone / iPad 的 Safari</b>。先打开课表页面，按 Ctrl+Shift+B 显示书签栏，在「设置 → 一键抓取 → 获取」中，把那个蓝色按钮拖到书签栏上，点击此书签 → 抓取 → 复制内容粘贴到输入框 → 导入。<br><br><b>② 手动抓接口响应</b><br>在电脑上登录学校系统 → 打开课表查询页 → 按 F12 → Network 中找到 <b>py_kbcx_ew</b> → 右键 py_kbcx_ew 复制为 response/响应，把响应原文粘贴到导入框 → 导入。</div></details>
     <details><summary>怎么更新到新版本？</summary><div class="ans">App 内「设置 → 检查更新」会提示有没有新版本。也可以直接重新下载上面的安装包<b>覆盖安装</b>，课表数据不会丢。</div></details>
     <details><summary>收费吗？会收集我的信息吗？</summary><div class="ans">完全免费，无广告，无内购。App 不注册、不上传任何数据，学号密码只在你自己设备上使用。</div></details>
   </section>

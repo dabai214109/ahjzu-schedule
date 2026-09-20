@@ -432,16 +432,15 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
     <div class="sheet-handle"></div>
     <div class="sheet-title">一键抓取（书签脚本）</div>
     <div class="mr-body">
-      <p>书签脚本是一小段存在你浏览器书签里的代码。点它一下，就在<b>学校页面内部</b>把课表数据抓出来，再复制粘贴到本页 —— 不用再按 F12。</p>
-      <p><b>电脑（Chrome / Edge / 国产浏览器）</b>：先按 Ctrl+Shift+B 显示书签栏，然后把下面那个蓝色按钮<b>拖到书签栏</b>上。以后在学校课表页面点一下它就行。</p>
-      <p><b>iPhone / iPad（Safari）</b>：先点击复制脚本内容，接着在任意页面点「分享 → 添加书签」建一个书签 → 打开书签列表点「编辑」→ 选中它 → 把地址整段删掉，粘贴开头复制的脚本内容内容 → 完成。之后按照网页登录流程进入在学校课表页面点这个书签即可。</p>
-      <p>抓取成功后屏幕底部会弹出一个面板，点「复制」，再回到本页粘贴到「导入课表」。</p>
+      <p>书签脚本是一小段存在你浏览器书签里的代码。在学校课表页面点它一下，它就在<b>学校页面内部</b>开始监听；你再点一次左侧菜单「学生课表查询」，课表数据就会被抓出来，复制粘贴到本页即可 —— 不用再按 F12。</p>
+      <p><b>电脑（Chrome / Edge / 国产浏览器）</b>：先打开课表页面，按 Ctrl+Shift+B 显示书签栏，在「设置 → 一键抓取 → 获取」中，把那个蓝色按钮拖到书签栏上，点击此书签 → 抓取 → 复制内容粘贴到输入框 → 导入。</p>
+      <p><b>iPhone / iPad（Safari）</b>：先点下面的「点此复制脚本内容」，接着在任意页面点「分享 → 添加书签」建一个书签 → 打开书签列表点「编辑」→ 选中它 → 把地址整段删掉，粘贴刚复制的脚本内容 → 完成。之后按网页登录流程进入学校课表页面，点这个书签即可。</p>
+      <p>点书签后按面板提示点左侧菜单「学生课表查询」；抓到课表时屏幕底部会再弹一个面板，点「复制」，再回到本页粘贴到「导入课表」。</p>
       <p class="mr-tip">脚本只在你自己的浏览器里运行，学号密码不会被发送到任何第三方。</p>
     </div>
     <div style="padding: 0 0 6px;">
       <a id="bmDrag" class="btn-primary" href="javascript:void(0)" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" onclick="return false;">点此按钮拖拽至书签栏</a>
-      <textarea id="bmCode" readonly style="width:100%;height:86px;margin-top:8px;font:11px/1.4 monospace;border:1px solid #E5E7EF;border-radius:10px;padding:8px;box-sizing:border-box;background:#F8F9FB;color:var(--dim);"></textarea>
-      <button class="mini-btn" style="margin-top:8px;width:100%;" onclick="copyBookmarklet()">复制脚本内容</button>
+      <button class="mini-btn" style="margin-top:10px;width:100%;" onclick="copyBookmarklet()">点此复制脚本内容</button>
     </div>
     <button class="sheet-close-btn" onclick="hideSheet('bmSheet')">关 闭</button>
   </div>
@@ -464,7 +463,7 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
         </div>
       </div>
       <div style="padding: 10px 16px 14px;">
-        <textarea id="importJson" rows="7" placeholder='粘贴响应原文，例如：&#10;{"rows":[{"jcid":41,"sjbz":"上午","mc":"上午1","z3":"&lt;br/&gt;新时代中国特色社会主义理论与实践4班[1-8周] 周叶君[5102]"},…],"week":"Wednesday"}' style="width:100%; padding:10px; background:#F1F3F7; border:none; border-radius:10px; font-size:11px; color:var(--text); outline:none; font-family:monospace; box-sizing:border-box;"></textarea>
+        <textarea id="importJson" rows="3" placeholder='粘贴响应原文，例如：&#10;{"rows":[{"jcid":41,"sjbz":"上午","mc":"上午1","z3":"&lt;br/&gt;新时代中国特色社会主义理论与实践4班[1-8周] 周叶君[5102]"},…],"week":"Wednesday"}' style="width:100%; padding:10px; background:#F1F3F7; border:none; border-radius:10px; font-size:11px; color:var(--text); outline:none; font-family:monospace; box-sizing:border-box;"></textarea>
         <button class="btn-primary" onclick="doImportJson()">导 入</button>
         <div class="login-error" id="importError"></div>
       </div>
@@ -475,7 +474,7 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       <div class="srow">
         <div class="srow-main">
           <div class="srow-label">书签脚本（不用按 F12）</div>
-          <div class="srow-desc">在学校课表页面点一下书签，自动抓出课表数据并提示你复制，比手动开开发者工具省事。</div>
+          <div class="srow-desc">在学校课表页面点一下书签、再点左侧菜单，自动抓出课表数据并提示你复制，比手动开开发者工具省事。</div>
         </div>
         <button class="mini-btn" onclick="openBookmarklet()">获取</button>
       </div>
@@ -517,17 +516,6 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
           <div class="srow-desc">开启后单双周课程都能看见（半透明显示）</div>
         </div>
         <label class="switch"><input type="checkbox" id="setNonCurrent"><span></span></label>
-      </div>
-    </div>
-
-    <div class="group">
-      <div class="group-title">学期代码</div>
-      <div class="srow">
-        <div class="srow-main">
-          <div class="srow-label">研究生系统 termcode</div>
-          <div class="srow-desc">例如 202701，每学期不同；书签脚本抓取时会默认填这个学期（App 版跟随你在学校页面上选的学期）</div>
-        </div>
-        <input type="text" class="txt" id="setTerm">
       </div>
     </div>
 
@@ -789,35 +777,12 @@ function bmMain() {
       };
     }
   }
-  var m = location.pathname.match(/^(.*?\/gmis5\/\(S\([^)]*\)\))/);
-  var base = m ? m[1] : '';
   var d2 = panel(
     '<div style="font-weight:700;font-size:15px;margin-bottom:4px;">课表抓取已就绪</div>' +
-    '<div style="color:#666;font-size:12px;margin-bottom:8px;">方式一：点「抓取」直接取课表（推荐）<br>方式二：点左侧菜单「学生课表查询」，本脚本会自动捕获</div>' +
-    '<div style="display:flex;gap:8px;align-items:center;">' +
-    '<span style="font-size:12px;color:#666;">学期</span>' +
-    '<input id="__kcb_term" value="' + termForPanel() + '" style="flex:1;padding:9px 10px;border:1px solid #DDD;border-radius:8px;font-size:13px;">' +
-    '<button id="__kcb_go" style="padding:11px 18px;border:0;border-radius:10px;background:#3B82F6;color:#fff;font-size:15px;font-weight:600;">抓取</button>' +
-    '</div>' +
+    '<div style="color:#666;font-size:12px;margin-bottom:8px;">点左侧菜单「学生课表查询」，本脚本会自动捕获课表。<br>想抓别的学期：先在页面上选好学期，再点一次左侧菜单。</div>' +
     '<button id="__kcb_cl2" style="width:100%;margin-top:8px;padding:9px;border:0;border-radius:10px;background:#F1F3F7;color:#333;font-size:13px;">关 闭</button>'
   );
   d2.querySelector('#__kcb_cl2').onclick = function () { if (d2.parentNode) d2.parentNode.removeChild(d2); };
-  d2.querySelector('#__kcb_go').onclick = function () {
-    if (!base) { alert('没识别到研究生系统的地址。请先进入「研究生系统 → 培养管理 → 学生课表查询」页面，再点这个书签。'); return; }
-    var term = String(d2.querySelector('#__kcb_term').value || '').replace(/\s/g, '') || '202701';
-    fetch(base + '/student/pygl/py_kbcx_ew', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'accept': 'application/json, text/javascript, */*; q=0.01',
-        'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        'x-requested-with': 'XMLHttpRequest'
-      },
-      body: 'kblx=xs&termcode=' + encodeURIComponent(term)
-    }).then(function (r) { return r.text(); }).then(function (t) {
-      if (!tryText(t)) alert('没抓到课表：可能是登录已过期或学期代码不对。请刷新页面重新登录，或改用「点菜单」的方式。');
-    }).catch(function (e) { alert('请求失败：' + (e && e.message ? e.message : e)); });
-  };
 }
 
 function buildBookmarklet() {
@@ -826,30 +791,30 @@ function buildBookmarklet() {
 }
 function openBookmarklet() {
   var code = buildBookmarklet();
-  $('bmCode').value = code;
   var a = $('bmDrag');
   if (a) a.setAttribute('href', code);
   openSheet('bmSheet');
 }
+/* 弹层里不再显示脚本内容，复制功能照旧：现场生成脚本 → 能写剪贴板就写，不能就退回 execCommand */
 function copyBookmarklet() {
-  var ta = $('bmCode');
-  try { ta.select(); ta.setSelectionRange(0, ta.value.length); } catch (e) {}
-  var ok = false;
-  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-  if (ok) { showToast('书签脚本已复制 ✓'); return; }
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(ta.value).then(function () { showToast('书签脚本已复制 ✓'); },
-      function () { showToast('复制失败，请长按文本框手动复制'); });
+  var code = buildBookmarklet();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(function () { showToast('书签脚本已复制 ✓'); },
+      function () { fallbackCopy(code); });
     return;
   }
-  showToast('复制失败，请长按文本框手动复制');
+  fallbackCopy(code);
 }
-
-/* 书签脚本面板里「学期」的默认值 = 设置里的学期代码
-   （只留数字：这个值会被拼进注入学校页面的 HTML，不能让引号之类混进去） */
-function termForPanel() {
-  var t = String((typeof settings !== 'undefined' && settings.term) || '').replace(/[^\d]/g, '');
-  return t || '202701';
+function fallbackCopy(code) {
+  var ta = document.createElement('textarea');
+  ta.value = code;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+  document.body.appendChild(ta);
+  var ok = false;
+  try { ta.select(); ta.setSelectionRange(0, code.length); ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  if (ta.parentNode) ta.parentNode.removeChild(ta);
+  showToast(ok ? '书签脚本已复制 ✓' : '复制失败，请改用电脑浏览器打开本页再复制');
 }
 
 /* 收到 py_kbcx_ew 响应 JSON → 解析并映射到课表页 */
@@ -863,7 +828,6 @@ function handleCapture(ev) {
     courses: courses,                  /* z1~z7 → 每门课的周次/教师/教室/星期/节次 */
     slots: slots,                      /* jcid 节次结构（上午1~晚上12） */
     week: raw.week || '',
-    term: settings.term,
     fetchedAt: Date.now()
   };
   cacheSave();
@@ -1438,11 +1402,11 @@ var MUST_READ_PARAS = [
   '本网页版仅适用于安建大研究生课表，纯前端运行，<b>不收集和上传任何个人信息</b>。',
   '用法二选一（两种方式拿到的东西一样，最后都是粘到「设置 → 导入课表」）：<br>' +
   '<b>① 一键抓取书签脚本</b>（推荐，不用开发者工具，和手动抓取类似）<br>' +
-  '适合电脑（Chrome / Edge / 国产浏览器）和 iPhone / iPad 的 Safari。安卓手机不方便建这种 javascript 书签，具体操作见「设置 → 一键抓取」，按页面上的描述进行操作。<br>' +
+  '适合电脑（Chrome / Edge / 国产浏览器）和 iPhone / iPad 的 Safari。先打开课表页面，按 Ctrl+Shift+B 显示书签栏，在「设置 → 一键抓取 → 获取」中，把那个蓝色按钮拖到书签栏上，点击此书签 → 抓取 → 复制内容粘贴到输入框 → 导入。<br>' +
   '<b>② 手动抓接口响应</b><br>' +
-  '在电脑上登录学校系统 → 打开课表查询页 → 按 F12 → Network 点击筛选 Fetch/XHR，找到 <b>py_kbcx_ew</b> → 右键 py_kbcx_ew 复制为 response/响应，把响应原文粘贴到导入框 → 导入。',
+  '在电脑上登录学校系统 → 打开课表查询页 → 按 F12 → Network 中找到 <b>py_kbcx_ew</b> → 右键 py_kbcx_ew 复制为 response/响应，把响应原文粘贴到导入框 → 导入。',
   '课表数据只保存在你自己的浏览器里：换设备、换浏览器或清理缓存后，需要重新粘贴导入一次。',
-  '有问题请移步 GitHub 项目 ahjzu-schedule 提交 PR。'
+  '有问题请移步 GitHub 项目 ahjzu-schedule 提交 issue或者发邮件至 polaris214109@agent.qq.com。'
 ];
 function openMustRead() {
   $('mrBody').innerHTML = MUST_READ_PARAS.map(function (t) { return '<p>' + t + '</p>'; }).join('') +
@@ -1534,7 +1498,7 @@ function syncSettingsForm() {
   $('setWeekAuto').textContent = '默认按日期自动计算（当前第 ' + autoWeek() + ' 周），也可手动指定';
   $('setWeekend').checked = !!settings.showWeekend;
   $('setNonCurrent').checked = !!settings.showNonCurrent;
-  $('setTerm').value = settings.term || '';
+  /* 不提供「学期代码」设置：抓取靠嗅探学校页面自己发的请求，学期天然是对的 */
 
   /* 作息季节选中态 */
   var segBtns = document.querySelectorAll('#seasonSeg button');
@@ -1601,10 +1565,6 @@ function bindStatic() {
   $('setNonCurrent').addEventListener('change', function (e) {
     settings.showNonCurrent = e.target.checked;
     saveSettings(); renderAll();
-  });
-  $('setTerm').addEventListener('change', function (e) {
-    settings.term = e.target.value.trim();
-    saveSettings();
   });
 
   /* 左右滑动切换周次（横向位移明显大于纵向才算，避免误触竖向滚动） */
