@@ -10,7 +10,7 @@
 | 版本 | 说明 |
 |---|---|
 | **[kcb.apk](https://gitee.com/dabai214109/ahjzu-schedule/raw/master/kcb.apk)** | 安卓版（正式版，约 3 MB） |
-| **[网页版](https://ahjzu-schedule.netlify.app/)** | 不用装，浏览器打开就能用；手机可「添加到桌面」当 App 用 |
+| **[网页版](https://ahjzu-schedule.pages.dev/)** | 不用装，浏览器打开就能用；手机可「添加到桌面」当 App 用 |
 
 安装：下载 APK 后在手机上打开，按提示允许「安装未知来源应用」即可。更新直接装新版覆盖，**课表数据不会丢**。
 
