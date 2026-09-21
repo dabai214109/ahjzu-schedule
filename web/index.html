@@ -432,10 +432,10 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
     <div class="sheet-handle"></div>
     <div class="sheet-title">一键抓取（书签脚本）</div>
     <div class="mr-body">
-      <p>书签脚本是一小段存在你浏览器书签里的代码。在学校课表页面点它一下，它就在<b>学校页面内部</b>开始监听；你再点一次左侧菜单「学生课表查询」，课表数据就会被抓出来，复制粘贴到本页即可 —— 不用再按 F12。</p>
+      <p>书签脚本是一小段存在你浏览器书签里的代码。在学校课表页面点它一下，会弹出一个小面板：点「抓取」就把<b>当前学期</b>的课表抓出来，复制粘贴到本页即可 —— 不用再按 F12。学期是自动识别的，不用手填；想换学期先在页面上选好再点。</p>
       <p><b>电脑（Chrome / Edge / 国产浏览器）</b>：先打开课表页面，按 Ctrl+Shift+B 显示书签栏，在「设置 → 一键抓取 → 获取」中，把那个蓝色按钮拖到书签栏上，点击此书签 → 抓取 → 复制内容粘贴到输入框 → 导入。</p>
       <p><b>iPhone / iPad（Safari）</b>：先点下面的「点此复制脚本内容」，接着在任意页面点「分享 → 添加书签」建一个书签 → 打开书签列表点「编辑」→ 选中它 → 把地址整段删掉，粘贴刚复制的脚本内容 → 完成。之后按网页登录流程进入学校课表页面，点这个书签即可。</p>
-      <p>点书签后按面板提示点左侧菜单「学生课表查询」；抓到课表时屏幕底部会再弹一个面板，点「复制」，再回到本页粘贴到「导入课表」。</p>
+      <p>点书签后面板里点「抓取」即可（学期是自动识别的，不用填）；也可以直接点左侧菜单「学生课表查询」，脚本会自动捕获。抓到课表时底部会再弹一个面板，点「复制」，再回到本页粘贴到「导入课表」。</p>
       <p class="mr-tip">脚本只在你自己的浏览器里运行，学号密码不会被发送到任何第三方。</p>
     </div>
     <div style="padding: 0 0 6px;">
@@ -474,7 +474,7 @@ details.group summary span { font-size: 11px; color: var(--dim); margin-top: 2px
       <div class="srow">
         <div class="srow-main">
           <div class="srow-label">书签脚本（不用按 F12）</div>
-          <div class="srow-desc">在学校课表页面点一下书签、再点左侧菜单，自动抓出课表数据并提示你复制，比手动开开发者工具省事。</div>
+          <div class="srow-desc">在学校课表页面点一下书签，再点面板里的「抓取」，自动抓出当前学期的课表并提示你复制，比手动开开发者工具省事。</div>
         </div>
         <button class="mini-btn" onclick="openBookmarklet()">获取</button>
       </div>
@@ -706,6 +706,7 @@ function gotoImport() {
    ⚠️ 写法约束：只能用块注释（不能写行注释），语句必须带分号 —— 生成书签时换行会被压成空格 */
 function bmMain() {
   var PID = '__kcb_bm_panel';
+  var lastTerm = '';
   function panel(html) {
     var old = document.getElementById(PID);
     if (old && old.parentNode) old.parentNode.removeChild(old);
@@ -754,15 +755,62 @@ function bmMain() {
     d.querySelector('#__kcb_cl').onclick = function () { if (d.parentNode) d.parentNode.removeChild(d); };
     return true;
   }
+  /* ── 学期代码：自动识别，用户不用手填 ──
+     ① 优先读页面上「学期」控件当前选中的值（只认 20xxxx 这种格式）；
+     ② 读不到就用钩子记下来的、页面自己发请求时用过的学期；
+     ③ 课表页若在同源 iframe 里，也一并找。 */
+  function termOf(doc) {
+    var i, v, arr = doc.querySelectorAll('select');
+    for (i = 0; i < arr.length; i++) { v = String(arr[i].value || ''); if (/^20\d{4}$/.test(v)) return v; }
+    arr = doc.querySelectorAll('input');
+    for (i = 0; i < arr.length; i++) { v = String(arr[i].value || ''); if (/^20\d{4}$/.test(v)) return v; }
+    return '';
+  }
+  function termIn(s) {
+    var m = String(s || '').match(/termcode=(\d{4,8})/);
+    return m ? m[1] : '';
+  }
+  /* 兜底顺序：页面学期控件 → 地址栏参数 → 同源 iframe → 页面源码里的 termcode= → 页面自己发过的请求。
+     最后一条关键：第一次点书签时控件可能读不到，只要页面自己请求过一次就能拿到。 */
+  function sniffTerm() {
+    var t = termOf(document) || termIn(location.search);
+    if (t) return t;
+    for (var i = 0; i < window.frames.length; i++) {
+      try {
+        t = termOf(window.frames[i].document) || termIn(window.frames[i].location.search);
+        if (t) return t;
+      } catch (e) {}
+    }
+    try { t = termIn(document.documentElement.innerHTML); if (t) return t; } catch (e) {}
+    return lastTerm || '';
+  }
+  /* 研究生系统的地址前缀（带会话号，每次登录都变，所以必须现场取） */
+  function baseOf(loc) {
+    var m = String((loc && loc.pathname) || '').match(/^(.*?\/gmis5\/\(S\([^)]*\)\))/);
+    return m ? m[1] : '';
+  }
+  function findBase() {
+    var b = baseOf(location);
+    if (b) return b;
+    for (var i = 0; i < window.frames.length; i++) {
+      try { b = baseOf(window.frames[i].location); if (b) return b; } catch (e) {}
+    }
+    return '';
+  }
   if (!window.__kcb_hooked) {
     window.__kcb_hooked = 1;
     var XO = XMLHttpRequest.prototype.open;
     var XS = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.send = function () {
+    XMLHttpRequest.prototype.send = function (body) {
       var x = this;
       try {
+        var t0 = termIn(body);
+        if (t0) lastTerm = t0;
         x.addEventListener('load', function () {
-          try { if (!x.responseType || x.responseType === 'text') tryText(x.responseText); } catch (e) {}
+          try {
+            if (!x.responseType || x.responseType === 'text') tryText(x.responseText);
+            else if (x.responseType === 'json') tryText(JSON.stringify(x.response));
+          } catch (e) {}
         });
       } catch (e) {}
       return XS.apply(this, arguments);
@@ -770,19 +818,62 @@ function bmMain() {
     XMLHttpRequest.prototype.open = function () { return XO.apply(this, arguments); };
     if (window.fetch) {
       var OF = window.fetch;
-      window.fetch = function () {
+      window.fetch = function (input, init) {
+        var mine = window.__kcb_self ? 1 : 0;
+        try {
+          if (init && init.body) { var t1 = termIn(init.body); if (t1) lastTerm = t1; }
+        } catch (e) {}
         var p = OF.apply(this, arguments);
-        try { p.then(function (r) { try { r.clone().text().then(tryText); } catch (e) {} }); } catch (e) {}
+        try { if (!mine) p.then(function (r) { try { r.clone().text().then(tryText); } catch (e) {} }); } catch (e) {}
         return p;
       };
     }
   }
   var d2 = panel(
     '<div style="font-weight:700;font-size:15px;margin-bottom:4px;">课表抓取已就绪</div>' +
-    '<div style="color:#666;font-size:12px;margin-bottom:8px;">点左侧菜单「学生课表查询」，本脚本会自动捕获课表。<br>想抓别的学期：先在页面上选好学期，再点一次左侧菜单。</div>' +
+    '<div id="__kcb_tip" style="color:#666;font-size:12px;margin-bottom:8px;">点「抓取」取<b>当前学期</b>的课表；也可以直接点左侧菜单「学生课表查询」，本脚本会自动捕获。</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;">' +
+    '<span id="__kcb_termstate" style="font-size:12px;color:#666;flex:1;"></span>' +
+    '<button id="__kcb_go" style="padding:11px 18px;border:0;border-radius:10px;background:#3B82F6;color:#fff;font-size:15px;font-weight:600;">抓 取</button>' +
+    '</div>' +
     '<button id="__kcb_cl2" style="width:100%;margin-top:8px;padding:9px;border:0;border-radius:10px;background:#F1F3F7;color:#333;font-size:13px;">关 闭</button>'
   );
+  var termEl = d2.querySelector('#__kcb_termstate');
+  function showTerm() {
+    var t = sniffTerm();
+    termEl.textContent = t ? ('识别到学期：' + t) : '还没识别到学期：请先在页面上选好学期';
+  }
+  showTerm();
   d2.querySelector('#__kcb_cl2').onclick = function () { if (d2.parentNode) d2.parentNode.removeChild(d2); };
+  d2.querySelector('#__kcb_go').onclick = function () {
+    var btn = d2.querySelector('#__kcb_go');
+    var term = sniffTerm();
+    termEl.textContent = term ? ('识别到学期：' + term) : '还没识别到学期：请先在页面上选好学期';
+    if (!term) { alert('没识别到学期。请先切一下页面上的「学期」，再点「抓取」。'); return; }
+    var b = findBase();
+    if (!b) { alert('没识别到研究生系统的地址。请先进入「研究生系统 → 培养管理 → 学生课表查询」页面，再点这个书签。'); return; }
+    btn.disabled = true; btn.textContent = '抓取中…';
+    window.__kcb_self = 1;
+    fetch(b + '/student/pygl/py_kbcx_ew', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'accept': 'application/json, text/javascript, */*; q=0.01',
+        'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        'x-requested-with': 'XMLHttpRequest'
+      },
+      body: 'kblx=xs&termcode=' + encodeURIComponent(term)
+    }).then(function (r) { return r.text(); }).then(function (t) {
+      window.__kcb_self = 0;
+      if (tryText(t)) return;
+      btn.disabled = false; btn.textContent = '抓 取';
+      alert('学期 ' + term + ' 没抓到课程：可能是该学期还没排课，或登录已过期。刷新页面重新登录后重试。');
+    }).catch(function (e) {
+      window.__kcb_self = 0;
+      btn.disabled = false; btn.textContent = '抓 取';
+      alert('请求失败：' + (e && e.message ? e.message : e));
+    });
+  };
 }
 
 function buildBookmarklet() {
